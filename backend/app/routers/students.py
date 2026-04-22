@@ -446,6 +446,9 @@ ACHIEVEMENT_DEFINITIONS = [
     {"slug": "primera-clase", "name": "Primera Clase", "description": "Completa tu primera lección", "icon": "📚", "trigger": "first_lesson"},
     {"slug": "inmune", "name": "Inmune", "description": "Usa tu primer hielo de racha", "icon": "🧊", "trigger": "first_freeze"},
     {"slug": "racha-imparable", "name": "Racha Imparable", "description": "8 ejercicios correctos seguidos en una sesión", "icon": "💪", "trigger": "session_8"},
+    {"slug": "familia-participa-3", "name": "Familia Participa", "description": "3 días de participación parental seguidos", "icon": "👨‍👩‍👧", "trigger": "family_participation_3"},
+    {"slug": "familia-participa-7", "name": "Familia Unida", "description": "7 días de participación parental seguidos", "icon": "👨‍👩‍👧", "trigger": "family_participation_7"},
+    {"slug": "familia-participa-30", "name": "Familia Comprometida", "description": "30 días de participación parental seguidos", "icon": "🏠", "trigger": "family_participation_30"},
 ]
 
 
@@ -509,6 +512,12 @@ async def _check_achievements(db: AsyncSession, student: Student) -> list[Achiev
             elif trigger == "first_freeze" and student.streak_freeze_used_count > 0:
                 award = True
             elif trigger == "session_8" and session_streak >= 8:
+                award = True
+            elif trigger == "family_participation_3" and student.parent_participation_streak >= 3:
+                award = True
+            elif trigger == "family_participation_7" and student.parent_participation_streak >= 7:
+                award = True
+            elif trigger == "family_participation_30" and student.parent_participation_streak >= 30:
                 award = True
             if award:
                 achievements_to_add.append(defn)

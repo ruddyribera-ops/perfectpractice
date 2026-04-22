@@ -13,6 +13,8 @@ from app.models.parent import (
     ParentActivity as PAOrm, ParentActivityCompletion as PACOrm,
 )
 from app.models.progress import StudentTopicProgress
+from app.models.gamification import Achievement
+from app.routers.students import _check_achievements
 from pydantic import BaseModel
 
 router = APIRouter()
@@ -315,8 +317,12 @@ async def complete_activity(
     await db.commit()
     await db.refresh(student)
 
+    # Check for family participation achievements
+    await _check_achievements(db, student)
+
     return CompleteActivityResponse(
         success=True,
+        message="Actividad completada",
         parent_streak=student.parent_participation_streak or 0,
-        message=f"¡Actividad '{data.student_id}' marcada como completa! 🔥",
+        parent_last_engaged_at=student.parent_last_engaged_at.isoformat() if student.parent_last_engaged_at else None,
     )
