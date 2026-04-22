@@ -9,6 +9,7 @@ import {
 import {
   ChevronLeft, CheckCircle, XCircle, User, TrendingUp, Clock, ChevronDown, ChevronUp,
 } from 'lucide-react'
+import ThinkingProcessView from '@/components/ThinkingProcessView'
 
 export default function AssignmentResultsPage() {
   const params = useParams()
@@ -21,6 +22,7 @@ export default function AssignmentResultsPage() {
   const [expandedStudents, setExpandedStudents] = useState<Set<number>>(new Set())
   const [sortBy, setSortBy] = useState<'name' | 'score' | 'completion'>('name')
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc')
+  const [thinkingProcess, setThinkingProcess] = useState<{ studentId: number; exerciseId: number } | null>(null)
 
   useEffect(() => {
     if (assignmentId) loadResults()
@@ -290,6 +292,18 @@ export default function AssignmentResultsPage() {
                               }
                             </div>
                             <span className="flex-1 text-sm font-medium text-gray-800">{ex.exercise_title}</span>
+                            {ex.exercise_type === 'bar_model' && (
+                              <button
+                                onClick={() => setThinkingProcess({ studentId: student.student_id, exerciseId: ex.exercise_id })}
+                                style={{
+                                  background: '#dbeafe', border: 'none', borderRadius: '6px',
+                                  padding: '3px 10px', fontSize: '12px', fontWeight: 600,
+                                  color: '#1d4ed8', cursor: 'pointer',
+                                }}
+                              >
+                                🧠 Ver Proceso
+                              </button>
+                            )}
                             <span className={`text-xs font-medium ${ex.correct ? 'text-green-600' : 'text-red-500'}`}>
                               {ex.correct ? `+${ex.points_earned} pts` : 'Incorrecto'}
                             </span>
@@ -307,6 +321,14 @@ export default function AssignmentResultsPage() {
           )}
         </div>
       </main>
+
+      {thinkingProcess && (
+        <ThinkingProcessView
+          studentId={thinkingProcess.studentId}
+          exerciseId={thinkingProcess.exerciseId}
+          onClose={() => setThinkingProcess(null)}
+        />
+      )}
     </div>
   )
 }

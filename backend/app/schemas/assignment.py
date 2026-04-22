@@ -23,6 +23,7 @@ class AssignmentResponse(BaseModel):
 class ExerciseResultItem(BaseModel):
     exercise_id: int
     exercise_title: str
+    exercise_type: str
     correct: bool
     points_earned: int
     xp_earned: int

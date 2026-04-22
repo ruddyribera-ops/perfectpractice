@@ -245,6 +245,9 @@ class ApiClient {
   getAssignmentResults(assignmentId: number) {
     return this.get<AssignmentResultResponse>(`/assignments/${assignmentId}/results`)
   }
+  getStudentThinkingProcess(studentId: number, exerciseId: number) {
+    return this.get<ThinkingProcessResponse>(`/teachers/students/${studentId}/thinking_process?exercise_id=${exerciseId}`)
+  }
 
   // ─── Student Assignments ────────────────────────────────────────────────
   getMyAssignments() {
@@ -486,9 +489,29 @@ export interface AttemptHistoryResponse {
 export interface ExerciseResultItem {
   exercise_id: number
   exercise_title: string
+  exercise_type: string
   correct: boolean
   points_earned: number
   xp_earned: number
+}
+
+export interface ThinkingProcessAttempt {
+  id: number
+  correct: boolean
+  answer_json: Record<string, any>
+  points_earned: number
+  xp_earned: number
+  time_spent_seconds: number
+  attempted_at: string | null
+}
+
+export interface ThinkingProcessResponse {
+  student_id: number
+  student_name: string
+  exercise_id: number
+  exercise_title: string
+  exercise_type: string
+  attempts: ThinkingProcessAttempt[]
 }
 
 export interface StudentAssignmentResult {
@@ -552,6 +575,23 @@ export interface CompleteActivityResponse {
   message: string
   parent_streak: number
   parent_last_engaged_at: string
+}
+
+export interface ThinkingProcessAttempt {
+  id: number
+  construction_json: Record<string, any>
+  correct: boolean
+  time_spent_seconds: number
+  attempted_at: string
+}
+
+export interface StudentThinkingProcessResponse {
+  student_id: number
+  student_name: string
+  exercise_id: number
+  exercise_title: string
+  exercise_type: string
+  attempts: ThinkingProcessAttempt[]
 }
 
 export interface ClassroomCourse {

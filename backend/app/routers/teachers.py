@@ -10,9 +10,11 @@ from app.models.user import User, Teacher, Student
 from app.models.classes import Class, ClassEnrollment, Assignment, AssignmentExercise, StudentAssignment
 from app.models.progress import StudentTopicProgress
 from app.models.progress import ExerciseAttempt, StudentTopicProgress
+from app.models.curriculum import Exercise
 from app.schemas.teacher import (
     ClassCreateRequest, ClassResponse, ClassStudentsResponse,
     ClassDetailResponse, AssignmentResponse, AssignmentCreateRequest,
+    StudentThinkingProcessResponse, ThinkingProcessAttempt,
 )
 
 
@@ -263,6 +265,63 @@ async def _get_teacher(db: AsyncSession, user_id: int) -> Teacher:
     return teacher
 
 
+@router.get("/students/{student_id}/thinking_process")
+async def get_student_thinking_process(
+    student_id: int,
+    exercise_id: int,
+    user: User = Depends(get_current_user_required),
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Returns all attempts for a student + exercise, with full answer_json.
+    Teachers see HOW the student constructed the bar model — not just correct/incorrect.
+    """
+    if user.role not in ["teacher", "admin"]:
+        raise HTTPException(status_code=403, detail="Teacher only")
+
+    # Verify student exists
+    student_result = await db.execute(
+        select(Student).where(Student.id == student_id).options(selectinload(Student.user))
+    )
+    student = student_result.scalar_one_or_none()
+    if not student:
+        raise HTTPException(status_code=404, detail="Student not found")
+
+    # Load exercise to get title + type
+    ex_result = await db.execute(select(Exercise).where(Exercise.id == exercise_id))
+    exercise = ex_result.scalar_one_or_none()
+    exercise_title = exercise.title if exercise else f"Ejercicio {exercise_id}"
+    exercise_type = exercise.exercise_type.value if exercise and hasattr(exercise.exercise_type, 'value') else str(exercise.exercise_type) if exercise else "unknown"
+
+    # Load all attempts for this student + exercise
+    attempts_result = await db.execute(
+        select(ExerciseAttempt)
+        .where(ExerciseAttempt.student_id == student_id, ExerciseAttempt.exercise_id == exercise_id)
+        .order_by(ExerciseAttempt.attempted_at)
+    )
+    attempts = attempts_result.scalars().all()
+
+    return {
+        "student_id": student_id,
+        "student_name": student.user.name,
+        "exercise_id": exercise_id,
+        "exercise_title": exercise_title,
+        "exercise_type": exercise_type,
+        "attempts": [
+            {
+                "id": att.id,
+                "correct": att.correct,
+                "answer_json": att.answer_json,
+                "points_earned": att.points_earned,
+                "xp_earned": att.xp_earned,
+                "time_spent_seconds": att.time_spent_seconds,
+                "attempted_at": att.attempted_at.isoformat() if att.attempted_at else None,
+            }
+            for att in attempts
+        ],
+    }
+
+
 @router.delete("/classes/{class_id}/students/{student_id}")
 async def remove_student_from_class(
     class_id: int,
@@ -323,3 +382,80 @@ async def delete_assignment(
     await db.execute(delete(Assignment).where(Assignment.id == assignment_id))
     await db.commit()
     return {"message": "Assignment deleted"}
+
+
+@router.get("/students/{student_id}/thinking_process", response_model=StudentThinkingProcessResponse)
+async def get_student_thinking_process(
+    student_id: int,
+    exercise_id: int,
+    user: User = Depends(get_current_user_required),
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Return the full attempt history for a student's bar_model (or any) exercise,
+    including the raw construction JSON — so the teacher can replay the student's
+    problem-solving process segment by segment.
+    """
+    if user.role not in ["teacher", "admin"]:
+        raise HTTPException(status_code=403, detail="Teacher only")
+
+    # Verify teacher has access to this student (enrolled in one of teacher's classes)
+    teacher = await _get_teacher(db, user.id)
+    enrollment_result = await db.execute(
+        select(ClassEnrollment)
+        .where(
+            ClassEnrollment.student_id == student_id,
+            ClassEnrollment.class_id.in_(
+                select(Class.id).where(Class.teacher_id == teacher.id)
+            )
+        )
+    )
+    if not enrollment_result.scalar_one_or_none():
+        raise HTTPException(status_code=403, detail="Student not in your classes")
+
+    # Load student name
+    student_result = await db.execute(
+        select(Student).where(Student.id == student_id).options(selectinload(Student.user))
+    )
+    student = student_result.scalar_one_or_none()
+    if not student:
+        raise HTTPException(status_code=404, detail="Student not found")
+
+    # Load exercise
+    ex_result = await db.execute(select(Exercise).where(Exercise.id == exercise_id))
+    exercise = ex_result.scalar_one_or_none()
+    if not exercise:
+        raise HTTPException(status_code=404, detail="Exercise not found")
+
+    exercise_type = exercise.exercise_type.value if hasattr(exercise.exercise_type, 'value') else str(exercise.exercise_type)
+
+    # Load all attempts for this student + exercise (ordered by time)
+    attempts_result = await db.execute(
+        select(ExerciseAttempt)
+        .where(
+            ExerciseAttempt.student_id == student_id,
+            ExerciseAttempt.exercise_id == exercise_id,
+        )
+        .order_by(ExerciseAttempt.attempted_at)
+    )
+    attempts = attempts_result.scalars().all()
+
+    attempt_views = [
+        ThinkingProcessAttempt(
+            id=att.id,
+            construction_json=att.answer_json or {},
+            correct=att.correct,
+            time_spent_seconds=att.time_spent_seconds or 0,
+            attempted_at=att.attempted_at,
+        )
+        for att in attempts
+    ]
+
+    return StudentThinkingProcessResponse(
+        student_id=student_id,
+        student_name=student.user.name,
+        exercise_id=exercise_id,
+        exercise_title=exercise.title,
+        exercise_type=exercise_type,
+        attempts=attempt_views,
+    )
