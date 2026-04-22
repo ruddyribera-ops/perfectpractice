@@ -1,0 +1,16 @@
+FROM python:3.12-slim
+
+WORKDIR /app
+
+# Install dependencies first (layer cache hit — only rebuilds when requirements.txt changes)
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Copy source (mounted volume in dev overrides this)
+COPY . .
+
+# For dev: mount ./backend:/app and run with --reload
+# uvicorn watches /app for file changes and auto-restarts
+EXPOSE 8000
+
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
