@@ -181,7 +181,8 @@ async def submit_attempt(exercise_id: int, data: AttemptRequest, user: User = De
         correct=correct,
         points_earned=points_earned,
         xp_earned=xp_earned,
-        time_spent_seconds=data.time_spent_seconds
+        time_spent_seconds=data.time_spent_seconds,
+        helped_peer_id=data.helped_peer_id,
     )
     db.add(attempt)
 
@@ -449,7 +450,25 @@ ACHIEVEMENT_DEFINITIONS = [
     {"slug": "familia-participa-3", "name": "Familia Participa", "description": "3 días de participación parental seguidos", "icon": "👨‍👩‍👧", "trigger": "family_participation_3"},
     {"slug": "familia-participa-7", "name": "Familia Unida", "description": "7 días de participación parental seguidos", "icon": "👨‍👩‍👧", "trigger": "family_participation_7"},
     {"slug": "familia-participa-30", "name": "Familia Comprometida", "description": "30 días de participación parental seguidos", "icon": "🏠", "trigger": "family_participation_30"},
+    {"slug": "top-helper", "name": "Top Helper", "description": "Ayudaste a 3 compañeros en una semana", "icon": "🤝", "trigger": "top_helper"},
 ]
+
+
+async def _count_helped_peers_this_week(db: AsyncSession, student_id: int) -> int:
+    """Count unique peers helped this week via helped_peer_id field."""
+    from datetime import timedelta, timezone
+    week_ago = datetime.now(timezone.utc) - timedelta(days=7)
+    result = await db.execute(
+        select(ExerciseAttempt)
+        .where(
+            ExerciseAttempt.student_id == student_id,
+            ExerciseAttempt.helped_peer_id.isnot(None),
+            ExerciseAttempt.attempted_at >= week_ago,
+        )
+    )
+    # Count unique helped_peer_ids (not total attempts)
+    helped_peers = {att.helped_peer_id for att in result.scalars().all()}
+    return len(helped_peers)
 
 
 async def _check_achievements(db: AsyncSession, student: Student) -> list[Achievement]:
@@ -518,6 +537,8 @@ async def _check_achievements(db: AsyncSession, student: Student) -> list[Achiev
             elif trigger == "family_participation_7" and student.parent_participation_streak >= 7:
                 award = True
             elif trigger == "family_participation_30" and student.parent_participation_streak >= 30:
+                award = True
+            elif trigger == "top_helper" and _count_helped_peers_this_week(db, student.id) >= 3:
                 award = True
             if award:
                 achievements_to_add.append(defn)
@@ -876,6 +897,50 @@ async def link_parent_account(
     parent_name = parent.user.name if parent else "Familiar"
 
     return LinkParentResponse(success=True, parent_name=parent_name)
+
+
+@router.post("/helps/{attempt_id}")
+async def mark_helped_received(
+    attempt_id: int,
+    user: User = Depends(get_current_user_required),
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Mark that this student received help from a peer on an exercise attempt.
+    The helped student (the HELPER) earns a 'top_helper' badge track after 3+ helped.
+    """
+    if user.role != "student":
+        raise HTTPException(status_code=403, detail="Student only")
+
+    current_student = await _get_student(db, user.id)
+
+    # Load the attempt
+    attempt_result = await db.execute(
+        select(ExerciseAttempt).where(ExerciseAttempt.id == attempt_id)
+    )
+    attempt = attempt_result.scalar_one_or_none()
+    if not attempt:
+        raise HTTPException(status_code=404, detail="Intento no encontrado")
+
+    # Can't mark yourself as helped
+    if attempt.student_id == current_student.id:
+        raise HTTPException(status_code=400, detail="No puedes marcar que te ayudaste a ti mismo")
+
+    # Can't mark already-helped attempt
+    if attempt.helped_peer_id is not None:
+        raise HTTPException(status_code=400, detail="Este intento ya tiene un helper registrado")
+
+    # Set the helper
+    attempt.helped_peer_id = current_student.id
+    await db.commit()
+
+    # Check if the helper student earned top-helper badge
+    helper_result = await db.execute(select(Student).where(Student.id == attempt.student_id))
+    helper_student = helper_result.scalar_one_or_none()
+    if helper_student:
+        await _check_achievements(db, helper_student)
+
+    return {"success": True, "message": "Helper registrado"}
 
 
 async def _get_student(db: AsyncSession, user_id: int) -> Student:

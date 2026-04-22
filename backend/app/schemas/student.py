@@ -13,6 +13,7 @@ class AttemptRequest(BaseModel):
     answer: Any
     time_spent_seconds: int = 0
     assignment_id: Optional[int] = None
+    helped_peer_id: Optional[int] = None
 
 class AttemptResponse(BaseModel):
     correct: bool

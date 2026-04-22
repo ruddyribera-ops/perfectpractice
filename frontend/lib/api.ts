@@ -175,13 +175,17 @@ class ApiClient {
 
   // ─── Exercises ─────────────────────────────────────────────────────────────
   getExercise(id: number) { return this.get<Exercise>(`/exercises/${id}`) }
-  submitAttempt(id: number, answer: any, timeSpentSeconds: number, assignmentId?: number) {
+  submitAttempt(id: number, answer: any, timeSpentSeconds: number, assignmentId?: number, helpedPeerId?: number) {
     const body: Record<string, any> = {
       answer,
       time_spent_seconds: timeSpentSeconds,
     }
     if (assignmentId !== undefined) body.assignment_id = assignmentId
+    if (helpedPeerId !== undefined) body.helped_peer_id = helpedPeerId
     return this.post<AttemptResult>(`/me/exercises/${id}/attempt`, body)
+  }
+  markHelpedReceived(attemptId: number) {
+    return this.post<{ success: boolean; message: string }>(`/me/helps/${attemptId}`)
   }
 
   // ─── Student Progress ─────────────────────────────────────────────────

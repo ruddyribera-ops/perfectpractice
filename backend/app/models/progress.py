@@ -16,9 +16,11 @@ class ExerciseAttempt(Base):
     points_earned = Column(Integer, default=0)
     xp_earned = Column(Integer, default=0)
     time_spent_seconds = Column(Integer, default=0)
+    helped_peer_id = Column(Integer, ForeignKey("students.id"), nullable=True)
     attempted_at = Column(DateTime(timezone=True), server_default=func.now())
-    student = relationship("Student", back_populates="exercise_attempts")
+    student = relationship("Student", back_populates="exercise_attempts", foreign_keys=[student_id])
     exercise = relationship("Exercise", back_populates="attempts")
+    helped_peer = relationship("Student", foreign_keys=[helped_peer_id])
 
 class StudentTopicProgress(Base):
     __tablename__ = "student_topic_progress"
