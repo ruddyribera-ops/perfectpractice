@@ -1,6 +1,6 @@
 from pydantic import BaseModel
 from datetime import datetime
-from typing import Optional
+from typing import Optional, Any
 
 class ClassCreateRequest(BaseModel):
     name: str
@@ -61,3 +61,20 @@ class AssignmentResponse(BaseModel):
     created_at: datetime
     class Config:
         from_attributes = True
+
+
+class ThinkingProcessAttempt(BaseModel):
+    id: int
+    construction_json: dict[str, Any]
+    correct: bool
+    time_spent_seconds: int
+    attempted_at: Optional[datetime] = None
+
+
+class StudentThinkingProcessResponse(BaseModel):
+    student_id: int
+    student_name: str
+    exercise_id: int
+    exercise_title: str
+    exercise_type: str
+    attempts: list[ThinkingProcessAttempt]

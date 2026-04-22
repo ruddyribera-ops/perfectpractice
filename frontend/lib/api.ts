@@ -250,7 +250,7 @@ class ApiClient {
     return this.get<AssignmentResultResponse>(`/assignments/${assignmentId}/results`)
   }
   getStudentThinkingProcess(studentId: number, exerciseId: number) {
-    return this.get<ThinkingProcessResponse>(`/teachers/students/${studentId}/thinking_process?exercise_id=${exerciseId}`)
+    return this.get<ThinkingProcessResponse>(`/students/${studentId}/thinking_process?exercise_id=${exerciseId}`)
   }
 
   // ─── Student Assignments ────────────────────────────────────────────────

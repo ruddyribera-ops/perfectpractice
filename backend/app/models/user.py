@@ -46,7 +46,11 @@ class Student(Base):
     user = relationship("User", back_populates="student")
     topic_progress = relationship("StudentTopicProgress", back_populates="student")
     achievements = relationship("Achievement", back_populates="student")
-    exercise_attempts = relationship("ExerciseAttempt", back_populates="student")
+    exercise_attempts = relationship(
+        "ExerciseAttempt",
+        back_populates="student",
+        foreign_keys="ExerciseAttempt.student_id",
+    )
 
 class Teacher(Base):
     __tablename__ = "teachers"

@@ -279,48 +279,6 @@ async def get_student_thinking_process(
     if user.role not in ["teacher", "admin"]:
         raise HTTPException(status_code=403, detail="Teacher only")
 
-    # Verify student exists
-    student_result = await db.execute(
-        select(Student).where(Student.id == student_id).options(selectinload(Student.user))
-    )
-    student = student_result.scalar_one_or_none()
-    if not student:
-        raise HTTPException(status_code=404, detail="Student not found")
-
-    # Load exercise to get title + type
-    ex_result = await db.execute(select(Exercise).where(Exercise.id == exercise_id))
-    exercise = ex_result.scalar_one_or_none()
-    exercise_title = exercise.title if exercise else f"Ejercicio {exercise_id}"
-    exercise_type = exercise.exercise_type.value if exercise and hasattr(exercise.exercise_type, 'value') else str(exercise.exercise_type) if exercise else "unknown"
-
-    # Load all attempts for this student + exercise
-    attempts_result = await db.execute(
-        select(ExerciseAttempt)
-        .where(ExerciseAttempt.student_id == student_id, ExerciseAttempt.exercise_id == exercise_id)
-        .order_by(ExerciseAttempt.attempted_at)
-    )
-    attempts = attempts_result.scalars().all()
-
-    return {
-        "student_id": student_id,
-        "student_name": student.user.name,
-        "exercise_id": exercise_id,
-        "exercise_title": exercise_title,
-        "exercise_type": exercise_type,
-        "attempts": [
-            {
-                "id": att.id,
-                "correct": att.correct,
-                "answer_json": att.answer_json,
-                "points_earned": att.points_earned,
-                "xp_earned": att.xp_earned,
-                "time_spent_seconds": att.time_spent_seconds,
-                "attempted_at": att.attempted_at.isoformat() if att.attempted_at else None,
-            }
-            for att in attempts
-        ],
-    }
-
 
 @router.delete("/classes/{class_id}/students/{student_id}")
 async def remove_student_from_class(
