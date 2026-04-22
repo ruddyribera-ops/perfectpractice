@@ -269,6 +269,9 @@ class ApiClient {
   linkStudent(linkCode: string) {
     return this.post<{ success: boolean; parent_name: string }>('/me/link-parent', { link_code: linkCode })
   }
+  completeParentActivity(activityId: number, studentId: number) {
+    return this.post<CompleteActivityResponse>(`/parents/activities/${activityId}/complete`, { student_id: studentId })
+  }
 
   // ─── Google Classroom ────────────────────────────────────────────────────
   getClassroomAuthUrl() {
@@ -519,11 +522,36 @@ export interface LinkedStudent {
   exercises_completed: number
   total_exercises: number
   completion_rate: number
+  parent_streak: number
+  parent_last_engaged_at: string | null
+}
+
+export interface ParentActivity {
+  id: number
+  grade: number
+  title: string
+  description: string
+  materials: string
+  estimated_minutes: number
+  difficulty: 'easy' | 'medium' | 'hard'
+  bar_model_topic: string | null
+  topic_id: number | null
+  day_index: number
+  already_completed: boolean
 }
 
 export interface ParentDashboardResponse {
   parent_name: string
   linked_students: LinkedStudent[]
+  daily_activity: ParentActivity | null
+  student_id: number | null
+}
+
+export interface CompleteActivityResponse {
+  success: boolean
+  message: string
+  parent_streak: number
+  parent_last_engaged_at: string
 }
 
 export interface ClassroomCourse {

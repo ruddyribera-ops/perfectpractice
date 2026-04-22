@@ -41,6 +41,8 @@ class Student(Base):
     level = Column(Integer, default=1)
     avatar_url = Column(String(500), nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
+    parent_last_engaged_at = Column(DateTime(timezone=True), nullable=True)
+    parent_participation_streak = Column(Integer, default=0)
     user = relationship("User", back_populates="student")
     topic_progress = relationship("StudentTopicProgress", back_populates="student")
     achievements = relationship("Achievement", back_populates="student")
