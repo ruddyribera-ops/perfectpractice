@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useRef, useCallback } from 'react'
 
 // ─── Base-10 Blocks for Addition/Subtraction ───────────────────────────────
 interface Base10BlocksProps {
@@ -750,6 +750,309 @@ export function AnimatedArray({ rows = 3, cols = 4, color = '#8b5cf6', animate =
       <p className="text-sm text-gray-600 dark:text-gray-400 mt-3 text-center font-medium">
         {rows} filas × {cols} columnas = <span className="text-primary-600 font-bold text-base">{rows * cols}</span> puntos
       </p>
+    </div>
+  )
+}
+
+// ─── Interactive Bar Model (Singapore Math) — drag-and-drop construction ───────
+export interface BarModelSegment {
+  id: string
+  label: string
+  value: number
+  order: number
+  timestamp: number
+}
+
+export interface BarModelConstructionJSON {
+  type: 'bar_model_construction'
+  segments_built: BarModelSegment[]
+  total_built: string
+  final_answer: string
+  time_spent_ms: number
+}
+
+interface InteractiveBarModelProps {
+  /** Question text */
+  question: string
+  /** Expected total (the correct answer — used to know how many parts) */
+  expectedTotal: string
+  /** Expected units — the parts the student needs to build */
+  expectedUnits: { label: string; value: number }[]
+  /** Called whenever construction changes — pass to submitAttempt */
+  onChange?: (construction: BarModelConstructionJSON, numericAnswer: string) => void
+  /** Dark mode */
+  dark?: boolean
+}
+
+export function InteractiveBarModel({
+  question,
+  expectedTotal,
+  expectedUnits,
+  onChange,
+  dark = false,
+}: InteractiveBarModelProps) {
+  const [placed, setPlaced] = useState<BarModelSegment[]>([])
+  const [totalInput, setTotalInput] = useState('')
+  const [draggingValue, setDraggingValue] = useState<number | null>(null)
+  const [draggingId, setDraggingId] = useState<string | null>(null)
+  const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 })
+  const [dragPos, setDragPos] = useState({ x: 0, y: 0 })
+  const paletteRef = useRef<HTMLDivElement>(null)
+  const dropStartTime = useRef<number>(Date.now())
+
+  // Build available values from expectedUnits
+  const availableValues = [...new Set(expectedUnits.map(u => u.value))].sort((a, b) => a - b)
+
+  // Colors for placed segments
+  const colors = [
+    'bg-blue-400', 'bg-green-400', 'bg-yellow-400',
+    'bg-red-400', 'bg-purple-400', 'bg-pink-400',
+    'bg-orange-400', 'bg-teal-400',
+  ]
+
+  const emitChange = useCallback((segs: BarModelSegment[], total: string) => {
+    if (!onChange) return
+    const construction: BarModelConstructionJSON = {
+      type: 'bar_model_construction',
+      segments_built: segs,
+      total_built: total,
+      final_answer: total,
+      time_spent_ms: Date.now() - dropStartTime.current,
+    }
+    onChange(construction, total)
+  }, [onChange])
+
+  // Palette item pointer handlers
+  const handlePalettePointerDown = (value: number, e: React.PointerEvent) => {
+    e.preventDefault()
+    setDraggingValue(value)
+    setDraggingId(`new_${Date.now()}`)
+    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect()
+    setDragOffset({ x: e.clientX - rect.left, y: e.clientY - rect.top })
+    setDragPos({ x: e.clientX, y: e.clientY })
+    ;(e.currentTarget as HTMLElement).setPointerCapture(e.pointerId)
+  }
+
+  // Placed segment pointer handlers (reposition)
+  const handlePlacedPointerDown = (seg: BarModelSegment, e: React.PointerEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setDraggingId(seg.id)
+    setDraggingValue(seg.value)
+    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect()
+    setDragOffset({ x: e.clientX - rect.left, y: e.clientY - rect.top })
+    setDragPos({ x: e.clientX, y: e.clientY })
+    ;(e.currentTarget as HTMLElement).setPointerCapture(e.pointerId)
+  }
+
+  // Drop zone pointer handlers
+  const handleDropZonePointerUp = (slotIndex: number, e: React.PointerEvent) => {
+    e.preventDefault()
+    if (draggingId === null || draggingValue === null) return
+    const unitLabel = expectedUnits[slotIndex]?.label || `Parte ${slotIndex + 1}`
+    if (draggingId.startsWith('new_')) {
+      // New segment from palette
+      const newSeg: BarModelSegment = {
+        id: `seg_${Date.now()}`,
+        label: unitLabel,
+        value: draggingValue,
+        order: slotIndex,
+        timestamp: Date.now(),
+      }
+      const newPlaced = [...placed]
+      // Remove from existing position if already placed
+      const existingIdx = newPlaced.findIndex(s => s.id === draggingId)
+      if (existingIdx !== -1) newPlaced.splice(existingIdx, 1)
+      // Insert at slot
+      const existingAtSlot = newPlaced.findIndex(s => s.order === slotIndex)
+      if (existingAtSlot !== -1) newPlaced.splice(existingAtSlot, 1)
+      newPlaced.push({ ...newSeg, order: slotIndex })
+      setPlaced(newPlaced)
+      emitChange(newPlaced, totalInput)
+    }
+    setDraggingId(null)
+    setDraggingValue(null)
+  }
+
+  // Click palette item to add last
+  const handlePaletteClick = (value: number) => {
+    const nextSlot = placed.length < expectedUnits.length ? placed.length : 0
+    const unitLabel = expectedUnits[nextSlot]?.label || `Parte ${nextSlot + 1}`
+    const newSeg: BarModelSegment = {
+      id: `seg_${Date.now()}`,
+      label: unitLabel,
+      value,
+      order: nextSlot,
+      timestamp: Date.now(),
+    }
+    let newPlaced: BarModelSegment[]
+    if (placed.length === 0) {
+      newPlaced = [newSeg]
+    } else if (placed.length < expectedUnits.length) {
+      newPlaced = [...placed, newSeg]
+    } else {
+      // Replace oldest
+      newPlaced = [...placed.slice(1), newSeg]
+    }
+    setPlaced(newPlaced)
+    emitChange(newPlaced, totalInput)
+  }
+
+  // Remove a segment
+  const removeSegment = (id: string) => {
+    const newPlaced = placed.filter(s => s.id !== id)
+    setPlaced(newPlaced)
+    emitChange(newPlaced, totalInput)
+  }
+
+  // Update total
+  const handleTotalChange = (val: string) => {
+    setTotalInput(val)
+    emitChange(placed, val)
+  }
+
+  const totalVal = parseFloat(expectedTotal) || 0
+
+  return (
+    <div className={`rounded-xl p-4 border-2 ${dark ? 'bg-slate-800 border-slate-600' : 'bg-white border-gray-200'}`}>
+      {/* Header */}
+      <div className="flex items-center gap-2 mb-3">
+        <span className="text-lg">📊</span>
+        <p className={`font-bold text-sm ${dark ? 'text-gray-100' : 'text-gray-700'}`}>
+          Construye el Modelo de Barras
+        </p>
+        <span className="text-xs bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 px-2 py-0.5 rounded-full">
+          Interactivo
+        </span>
+      </div>
+
+      {/* Question */}
+      <p className={`text-base font-medium mb-4 ${dark ? 'text-gray-200' : 'text-gray-800'}`}>
+        {question}
+      </p>
+
+      {/* Instructions */}
+      <p className={`text-xs mb-3 ${dark ? 'text-gray-400' : 'text-gray-500'}`}>
+        💡 Arrastra los valores al modelo, o haz clic para añadir. Escribe el total abajo.
+      </p>
+
+      {/* Segment Palette */}
+      <div className="flex flex-wrap gap-2 mb-4" ref={paletteRef}>
+        {availableValues.map((val) => (
+          <div
+            key={val}
+            className={`
+              px-4 py-2 rounded-lg font-bold text-white cursor-grab active:cursor-grabbing
+              select-none transition-transform active:scale-105 shadow-sm
+              ${colors[availableValues.indexOf(val) % colors.length]}
+            `}
+            onPointerDown={(e) => handlePalettePointerDown(val, e)}
+            onClick={() => handlePaletteClick(val)}
+          >
+            {val}
+          </div>
+        ))}
+      </div>
+
+      {/* Drop Zones / Placed Segments */}
+      <div className="space-y-2 mb-4">
+        {expectedUnits.map((unit, idx) => {
+          const placedHere = placed.find(s => s.order === idx)
+          const isDragOver = draggingId !== null && draggingValue !== null && !placedHere
+
+          return (
+            <div key={idx} className="flex items-center gap-3">
+              <span className={`w-20 text-xs text-right flex-shrink-0 truncate ${dark ? 'text-gray-400' : 'text-gray-600'}`}>
+                {unit.label}
+              </span>
+              <div
+                className={`
+                  flex-1 h-10 rounded-lg border-2 border-dashed flex items-center justify-center
+                  transition-all min-w-0 cursor-pointer
+                  ${placedHere
+                    ? `border-solid ${colors[idx % colors.length]} opacity-90`
+                    : isDragOver
+                      ? `${dark ? 'border-blue-400 bg-blue-900/30' : 'border-blue-400 bg-blue-50'} border-solid`
+                      : `${dark ? 'border-slate-600' : 'border-gray-300'} ${dark ? 'bg-slate-700' : 'bg-gray-50'}`
+                  }
+                `}
+                onPointerUp={(e) => handleDropZonePointerUp(idx, e)}
+              >
+                {placedHere ? (
+                  <div
+                    className={`w-full h-full flex items-center px-3 cursor-grab active:cursor-grabbing rounded-lg ${colors[idx % colors.length]}`}
+                    onPointerDown={(e) => handlePlacedPointerDown(placedHere, e)}
+                    style={{ touchAction: 'none' }}
+                  >
+                    <span className="text-white text-sm font-bold whitespace-nowrap">{placedHere.value}</span>
+                    <button
+                      onClick={(e) => { e.stopPropagation(); removeSegment(placedHere.id) }}
+                      className="ml-auto text-white/70 hover:text-white text-xs font-bold"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                ) : (
+                  <span className={`text-xs ${dark ? 'text-gray-500' : 'text-gray-400'}`}>
+                    Arrastra aquí
+                  </span>
+                )}
+              </div>
+            </div>
+          )
+        })}
+
+        {/* Total bar */}
+        <div className="flex items-center gap-3 pt-1">
+          <span className={`w-20 text-xs text-right flex-shrink-0 ${dark ? 'text-gray-400' : 'text-gray-600'}`}>
+            Total
+          </span>
+          <div className="flex-1 flex gap-2">
+            <div className="flex-1 h-8 bg-gradient-to-r from-primary-400 to-purple-400 rounded-lg flex items-center px-3">
+              <span className="text-white text-sm font-bold">
+                {totalInput || '?'}
+              </span>
+            </div>
+            <input
+              type="text"
+              value={totalInput}
+              onChange={(e) => handleTotalChange(e.target.value)}
+              placeholder="?"
+              className={`
+                w-20 h-8 text-center border rounded-lg text-sm font-bold
+                ${dark
+                  ? 'bg-slate-700 border-slate-500 text-white placeholder-slate-400'
+                  : 'bg-white border-gray-300 text-gray-800 placeholder-gray-400'
+                }
+              `}
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* Visual bar preview */}
+      <div className="mt-3">
+        <div className={`h-2 rounded-full overflow-hidden flex gap-1 ${dark ? 'bg-slate-700' : 'bg-gray-200'}`}>
+          {placed.map((seg, i) => {
+            const widthPct = totalVal > 0 ? Math.min((seg.value / totalVal) * 100, 100) : 0
+            return (
+              <div
+                key={seg.id}
+                className={`${colors[i % colors.length]} rounded-full transition-all`}
+                style={{ width: `${widthPct}%` }}
+              />
+            )
+          })}
+        </div>
+        <div className="flex justify-between mt-1">
+          <span className={`text-xs ${dark ? 'text-gray-500' : 'text-gray-400'}`}>
+            {placed.length}/{expectedUnits.length} partes
+          </span>
+          <span className={`text-xs font-medium ${dark ? 'text-gray-400' : 'text-gray-500'}`}>
+            {placed.reduce((s, p) => s + p.value, 0)} / {expectedTotal}
+          </span>
+        </div>
+      </div>
     </div>
   )
 }

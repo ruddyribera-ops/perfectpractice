@@ -3,10 +3,10 @@
 import { useEffect, useState, useRef } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { api, Exercise, AttemptResult, AchievementResponse } from '@/lib/api'
+import { api, Exercise, AttemptResult, AchievementResponse, BarModelConstructionJSON } from '@/lib/api'
 import { useAuth } from '@/contexts/AuthContext'
 import { CheckCircle, XCircle, Lightbulb, ChevronLeft, Flame, Star, ArrowUp, ArrowDown, X } from 'lucide-react'
-import { BarModel, WordProblem } from '@/components/LessonVisuals'
+import { BarModel, WordProblem, InteractiveBarModel } from '@/components/LessonVisuals'
 
 // ─── Bar Model Display (standalone) ─────────────────────────────────────────
 function BarModelDisplay({ data }: { data: import('@/lib/api').BarModelData }) {
@@ -104,6 +104,7 @@ export default function ExercisePage() {
   const [exercise, setExercise] = useState<Exercise | null>(null)
   const [loading, setLoading] = useState(true)
   const [answer, setAnswer] = useState<string>('')
+  const [barModelConstruction, setBarModelConstruction] = useState<BarModelConstructionJSON | null>(null)
   const [selectedOption, setSelectedOption] = useState<number | null>(null)
   const [orderedItems, setOrderedItems] = useState<string[]>([])
   const [showHint, setShowHint] = useState(false)
@@ -124,6 +125,10 @@ export default function ExercisePage() {
     try {
       const data = await api.getExercise(id)
       setExercise(data)
+      // Reset all answer state for new exercise
+      setAnswer('')
+      setBarModelConstruction(null)
+      setResult(null)
       // Set ordered items if ordering type
       if (data.exercise_type === 'ordering' && data.data.options) {
         setOrderedItems([...data.data.options].sort(() => Math.random() - 0.5))
@@ -155,8 +160,12 @@ export default function ExercisePage() {
       finalAnswer = exercise.data.options[selectedOption]
     } else if (exercise.exercise_type === 'true_false') {
       finalAnswer = selectedOption === 0 ? 'true' : 'false'
-    } else if (exercise.exercise_type === 'ordering') {
+    } else     if (exercise.exercise_type === 'ordering') {
       finalAnswer = JSON.stringify(orderedItems)
+    } else if (exercise.exercise_type === 'bar_model') {
+      if (!answer.trim()) return
+      // Send both numeric answer AND construction process
+      finalAnswer = JSON.stringify({ numeric: answer.trim(), construction: barModelConstruction })
     } else {
       if (!answer.trim()) return
       finalAnswer = answer.trim()
@@ -408,15 +417,18 @@ export default function ExercisePage() {
         {/* Bar Model */}
         {exercise.exercise_type === 'bar_model' && (
           <div className="mb-4">
-            <BarModelDisplay data={exercise.data as import('@/lib/api').BarModelData} />
+            <InteractiveBarModel
+              question={(exercise.data as any).question || ''}
+              expectedTotal={(exercise.data as any).total || '?'}
+              expectedUnits={(exercise.data as any).units || []}
+              onChange={(construction, numericAnswer) => {
+                setBarModelConstruction(construction)
+                setAnswer(numericAnswer)
+              }}
+            />
             <input
-              type="text"
+              type="hidden"
               value={answer}
-              onChange={e => setAnswer(e.target.value)}
-              disabled={!!result}
-              className="input text-2xl text-center py-4 mt-4"
-              placeholder="Escribe tu respuesta..."
-              onKeyDown={e => e.key === 'Enter' && !result && !submitting && handleSubmit()}
             />
           </div>
         )}

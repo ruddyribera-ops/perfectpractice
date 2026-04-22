@@ -63,6 +63,22 @@ export interface WordProblemData {
   hint?: string
 }
 
+export interface BarModelSegment {
+  id: string
+  label: string
+  value: number
+  order: number
+  timestamp: number
+}
+
+export interface BarModelConstructionJSON {
+  type: 'bar_model_construction'
+  segments_built: BarModelSegment[]
+  total_built: string
+  final_answer: string
+  time_spent_ms: number
+}
+
 export interface AttemptResult {
   correct: boolean
   points_earned: number
