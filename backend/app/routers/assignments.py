@@ -154,9 +154,11 @@ async def get_assignment_results(
                     select(Exercise).where(Exercise.id == ae.exercise_id)
                 )
                 exercise = ex_result.scalar_one_or_none()
+                exercise_type = exercise.exercise_type.value if exercise and hasattr(exercise.exercise_type, 'value') else str(exercise.exercise_type) if exercise else 'unknown'
                 exercise_results.append(ExerciseResultItem(
                     exercise_id=ae.exercise_id,
                     exercise_title=exercise.title if exercise else f"Ejercicio {ae.exercise_id}",
+                    exercise_type=exercise_type,
                     correct=correct_flag,
                     points_earned=att.points_earned,
                     xp_earned=att.xp_earned,
@@ -167,9 +169,11 @@ async def get_assignment_results(
                     select(Exercise).where(Exercise.id == ae.exercise_id)
                 )
                 exercise = ex_result.scalar_one_or_none()
+                exercise_type = exercise.exercise_type.value if exercise and hasattr(exercise.exercise_type, 'value') else str(exercise.exercise_type) if exercise else 'unknown'
                 exercise_results.append(ExerciseResultItem(
                     exercise_id=ae.exercise_id,
                     exercise_title=exercise.title if exercise else f"Ejercicio {ae.exercise_id}",
+                    exercise_type=exercise_type,
                     correct=False,
                     points_earned=0,
                     xp_earned=0,
