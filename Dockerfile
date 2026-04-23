@@ -6,7 +6,6 @@ COPY backend/requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt gunicorn
 
 COPY backend/ .
-RUN pip install --no-cache-dir -r requirements.txt gunicorn
 
 EXPOSE 8000
 
