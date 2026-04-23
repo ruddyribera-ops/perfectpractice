@@ -2318,6 +2318,12 @@ async def seed_topics(db):
 
         # Create units
         for unit_data in topic_data.get("units", []):
+            # Check if unit already exists (from previous partial seed)
+            result_unit = await db.execute(select(Unit).where(Unit.slug == unit_data["slug"]))
+            if result_unit.scalar_one_or_none():
+                print(f"    ⏭️  Unit '{unit_data['slug']}' already exists, skipping")
+                continue
+
             unit = Unit(
                 topic_id=topic.id,
                 slug=unit_data["slug"],
@@ -2332,6 +2338,18 @@ async def seed_topics(db):
             # Create lessons first (so exercises can link to them)
             lesson_map = {}  # slug-like key → lesson id
             for lesson_data in unit_data.get("lessons", []):
+                # Check if lesson already exists
+                result_lesson = await db.execute(
+                    select(Lesson).where(
+                        Lesson.unit_id == unit.id,
+                        Lesson.title == lesson_data["title"]
+                    )
+                )
+                existing_lesson = result_lesson.scalar_one_or_none()
+                if existing_lesson:
+                    lesson_map[lesson_data["title"]] = existing_lesson.id
+                    continue
+
                 lesson = Lesson(
                     unit_id=unit.id,
                     title=lesson_data["title"],
@@ -2345,6 +2363,10 @@ async def seed_topics(db):
 
             # Create exercises and link to lessons
             for ex_data in unit_data.get("exercises", []):
+                # Check if exercise already exists
+                result_ex = await db.execute(select(Exercise).where(Exercise.slug == ex_data["slug"]))
+                if result_ex.scalar_one_or_none():
+                    continue
                 lesson_id = None
                 # Find which lesson this exercise belongs to
                 for lesson_data in unit_data.get("lessons", []):
