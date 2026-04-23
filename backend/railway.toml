@@ -1,8 +1,9 @@
 [build]
-dockerfilePath = "Dockerfile"
+context = "."
+dockerfilePath = "backend/Dockerfile"
 
 [deploy]
-healthcheckPath = "/api/health"
+healthcheckPath = "/health"
 healthcheckPort = 8000
 restartPolicyType = "ON_FAILURE"
 restartPolicyMaxRetries = 3

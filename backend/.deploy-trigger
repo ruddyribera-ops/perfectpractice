@@ -1,0 +1,2 @@
+# Backend trigger - forces Railway to rebuild
+DEPLOY_TRIGGER=2026-04-23T21:15:00Z
