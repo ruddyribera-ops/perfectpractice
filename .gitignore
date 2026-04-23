@@ -29,6 +29,9 @@ env/
 .DS_Store
 Thumbs.db
 
+# OpenCode
+.opencode/
+
 # Railway
 railway.toml/
 
