@@ -218,8 +218,8 @@ El resultado siempre suma 9:
 
 app = FastAPI(
     title="Math Platform API",
-    description="Khan Academy-style learning platform",
-    version="1.0.0",
+    description="Khan Academy-style learning platform — Bolivian curriculum",
+    version="1.0.2",
     lifespan=lifespan,
 )
 
