@@ -130,8 +130,8 @@ export default function ExercisePage() {
       setBarModelConstruction(null)
       setResult(null)
       // Set ordered items if ordering type
-      if (data.exercise_type === 'ordering' && data.data.options) {
-        setOrderedItems([...data.data.options].sort(() => Math.random() - 0.5))
+      if (data.exercise_type === 'ordering' && (data.data as any).options) {
+        setOrderedItems([...(data.data as any).options].sort(() => Math.random() - 0.5))
       }
       // Fetch current streak
       try {
@@ -156,8 +156,8 @@ export default function ExercisePage() {
     let finalAnswer: string
 
     if (exercise.exercise_type === 'multiple_choice') {
-      if (selectedOption === null || !exercise.data.options) return
-      finalAnswer = exercise.data.options[selectedOption]
+      if (selectedOption === null || !(exercise.data as any).options) return
+      finalAnswer = (exercise.data as any).options[selectedOption]
     } else if (exercise.exercise_type === 'true_false') {
       finalAnswer = selectedOption === 0 ? 'true' : 'false'
     } else     if (exercise.exercise_type === 'ordering') {
@@ -200,7 +200,7 @@ export default function ExercisePage() {
           ? 'Tu sesión expiró. Recarga la página.'
           : 'No se pudo verificar la respuesta. Intenta de nuevo.',
         unlocked_at: new Date().toISOString(),
-      })
+      } as any)
     } finally {
       setSubmitting(false)
     }
@@ -325,9 +325,9 @@ export default function ExercisePage() {
         )}
 
         {/* Multiple Choice */}
-        {exercise.exercise_type === 'multiple_choice' && exercise.data.options && (
+        {exercise.exercise_type === 'multiple_choice' && (exercise.data as any).options && (
           <div className="space-y-3 mb-4">
-            {exercise.data.options.map((opt, i) => {
+            {(exercise.data as any).options.map((opt: any, i: number) => {
               let cls = 'w-full p-4 text-left rounded-xl border-2 transition-all font-medium flex items-center gap-3'
               if (result) {
                 cls += selectedOption === i

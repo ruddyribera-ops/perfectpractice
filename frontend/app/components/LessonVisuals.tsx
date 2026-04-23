@@ -38,13 +38,13 @@ export function Base10Blocks({ a, b, operation = 'add', showCarry = false }: Bas
     <div className="flex items-center gap-2 sm:gap-3 overflow-x-auto">
       <span className="w-12 sm:w-16 text-xs sm:text-sm font-medium text-gray-600 dark:text-gray-400 dark:text-gray-300 whitespace-nowrap">{label}</span>
       <div className="flex gap-0.5 flex-wrap">
-        {Array.from({ length: Math.max(10, tens + resultTens + 2) }).map((_, i) => (
+        {Array.from({ length: Math.max(10, tens + (resultTens ?? 0) + 2) }).map((_, i) => (
           <Block key={`b${i}`} filled={i < tens} />
         ))}
       </div>
       <span className="text-gray-400 dark:text-gray-500">+</span>
       <div className="flex gap-0.5 flex-wrap">
-        {Array.from({ length: Math.max(10, bOnes + 2) }).map((_, i) => (
+        {Array.from({ length: Math.max(10, (bOnes ?? 0) + 2) }).map((_, i) => (
           <Block key={`bo${i}`} filled={i < bOnes} />
         ))}
       </div>
@@ -53,7 +53,7 @@ export function Base10Blocks({ a, b, operation = 'add', showCarry = false }: Bas
       )}
       {resultTens !== undefined && (
         <div className="flex gap-0.5 flex-wrap">
-          {Array.from({ length: Math.max(10, resultTens + resultOnes + 2) }).map((_, i) => (
+          {Array.from({ length: Math.max(10, (resultTens ?? 0) + (resultOnes ?? 0) + 2) }).map((_, i) => (
             <Block key={`r${i}`} filled={i < resultTens} />
           ))}
           {resultOnes !== undefined && (
@@ -801,7 +801,7 @@ export function InteractiveBarModel({
   const dropStartTime = useRef<number>(Date.now())
 
   // Build available values from expectedUnits
-  const availableValues = [...new Set(expectedUnits.map(u => u.value))].sort((a, b) => a - b)
+  const availableValues = Array.from(new Set(expectedUnits.map(u => u.value))).sort((a, b) => a - b)
 
   // Colors for placed segments
   const colors = [

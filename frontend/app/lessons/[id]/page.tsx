@@ -49,7 +49,7 @@ export default function LessonPage() {
       api.getLesson(id),
       api.getStats(),
     ]).then(([lessonData, statsData]) => {
-      setLesson(lessonData)
+      setLesson(lessonData as any)
       setStats(statsData)
     }).catch((error: any) => {
       console.error(error)
@@ -79,9 +79,9 @@ export default function LessonPage() {
   const handleSubmit = async () => {
     if (!currentExercise || submitting) return
     let finalAnswer: string
-    if (currentExercise.exercise_type === 'multiple_choice' && currentExercise.data.options) {
+    if (currentExercise.exercise_type === 'multiple_choice' && (currentExercise.data as any).options) {
       if (selectedOption === null) return
-      finalAnswer = currentExercise.data.options[selectedOption]
+      finalAnswer = (currentExercise.data as any).options[selectedOption]
     } else if (currentExercise.exercise_type === 'true_false') {
       finalAnswer = selectedOption === 0 ? 'true' : 'false'
     } else {
@@ -378,9 +378,9 @@ function PracticeView({
         )}
 
         {/* Multiple Choice */}
-        {exercise.exercise_type === 'multiple_choice' && exercise.data.options && (
+        {exercise.exercise_type === 'multiple_choice' && (exercise.data as any).options && (
           <div className="space-y-3 mb-4">
-            {exercise.data.options.map((opt, i) => {
+            {(exercise.data as any).options.map((opt: any, i: number) => {
               let cls = 'w-full p-4 text-left rounded-xl border-2 transition-all font-medium'
               if (result) {
                 if (i === selectedOption) cls += result.correct ? ' border-green-500 bg-green-50' : ' border-red-500 bg-red-50'

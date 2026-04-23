@@ -1,10 +1,17 @@
 'use client'
-import { useEffect, useState, createContext, useContext } from 'react'
-import { t as translate, localeNames, supportedLocales } from '@/lib/translations'
+import { useEffect, useState, createContext, useContext, ReactNode } from 'react'
+import { t as translate, localeNames, supportedLocales, Locale } from '@/lib/translations'
 
-export type Locale = 'es-BO' | 'fr' | 'pt-BR' | 'en-US'
+export type { Locale }
 
-export function ThemeProvider({ children }: { children: React.ReactNode }) {
+// ─── Theme Context ──────────────────────────────────────────────────────────
+
+export const ThemeContext = createContext<{ theme: string; setTheme: (t: string) => void }>({
+  theme: 'light',
+  setTheme: () => {},
+})
+
+export function ThemeProvider({ children }: { children: ReactNode }) {
   const [theme, setThemeState] = useState('light')
 
   useEffect(() => {
@@ -22,14 +29,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   return <ThemeContext.Provider value={{ theme, setTheme }}>{children}</ThemeContext.Provider>
 }
 
-// ─── Theme Context (exported for consumers) ───────────────────────────────────
-export const ThemeContext = createContext<{ theme: string; setTheme: (t: string) => void }>({
-  theme: 'light',
-  setTheme: () => {},
-})
-
 // ─── Locale Context ─────────────────────────────────────────────────────────
-export type Locale = 'es-BO' | 'fr' | 'pt-BR' | 'en-US'
 
 export const LocaleContext = createContext<{ locale: Locale; setLocale: (l: Locale) => void }>({
   locale: 'es-BO',
