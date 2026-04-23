@@ -2,15 +2,19 @@ FROM node:20-alpine AS base
 
 WORKDIR /app
 
+# Build args for cache bust
+ARG CACHE_DATE=20260423
+ARG CACHE_NUM=001
+
 # Stage 1: Install dependencies
 FROM base AS deps
 COPY package*.json ./
-RUN npm install --omit=dev
+RUN npm install --omit=dev --no-cache
 
 # Stage 2: Build
 FROM base AS builder
 COPY package*.json ./
-RUN npm install
+RUN npm install --no-cache
 COPY . .
 RUN npx next build
 
