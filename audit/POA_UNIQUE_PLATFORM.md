@@ -272,4 +272,24 @@ Para cada fase, antes de declarar "done", verificar:
 
 ---
 
+---
+
+## Known Limitations
+
+### KL-01: Google Classroom Integration — Partial Implementation
+**File:** `backend/app/routers/classroom.py:459`
+
+The Google Classroom OAuth + sync integration is partially implemented. The OAuth flow, course listing, and Classroom sync table work correctly. However, the step that maps local `Assignment` records to Google Classroom `courseWork` items and updates `StudentAssignment` is stubbed out:
+
+```python
+# TODO: match our assignments to Classroom courseWork and update StudentAssignment
+# Requires mapping our assignment title → Google Classroom assignment ID
+```
+
+**Impact:** Teachers can connect their Google Classroom account and import course work, but imported assignments won't be linked to student progress tracking until this mapping is completed.
+
+**Priority:** Low (not blocking for Bolivia market launch — Google Classroom is not widely used there)
+
+---
+
 **¿Procedo con Phase 0, o quieres ajustar el scope antes de empezar?**
