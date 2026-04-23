@@ -250,3 +250,7 @@ app.include_router(content_import.router)
 async def health_check():
     return {"status": "healthy", "version": "1.0.1"}
 
+@app.get("/health")
+async def root_health():
+    return {"status": "healthy"}
+
