@@ -5,12 +5,12 @@ WORKDIR /app
 # Stage 1: Install dependencies
 FROM base AS deps
 COPY package*.json ./
-RUN npm ci --only=production
+RUN npm install --omit=dev
 
 # Stage 2: Build
 FROM base AS builder
 COPY package*.json ./
-RUN npm ci
+RUN npm install
 COPY . .
 RUN npx next build
 
