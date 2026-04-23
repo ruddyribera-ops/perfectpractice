@@ -12,6 +12,7 @@ FROM base AS builder
 COPY package*.json ./
 RUN date > /tmp/buildtime.txt && npm install --no-cache
 COPY . .
+RUN mkdir -p public && touch public/.gitkeep
 RUN npx next build
 
 # Stage 3: Production
