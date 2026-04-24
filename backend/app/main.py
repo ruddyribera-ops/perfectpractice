@@ -292,13 +292,17 @@ async def root_health():
 
 @app.get("/debug/db")
 async def debug_db():
+    import os
     from app.core.config import settings
     from sqlalchemy import text as sa_text
-    db_url_masked = settings.DATABASE_URL[:30] + "***" if settings.DATABASE_URL else "NOT SET"
+    db_url_masked = settings.DATABASE_URL[:40] + "***" if settings.DATABASE_URL else "NOT SET"
+    # Show all DB-related env vars available
+    db_env_vars = {k: v[:20] + "..." for k, v in os.environ.items()
+                   if any(x in k.upper() for x in ["DATABASE", "POSTGRES", "PG", "DB_"])}
     try:
         async with engine.begin() as conn:
             result = await conn.execute(sa_text("SELECT COUNT(*) FROM users"))
             user_count = result.scalar()
-        return {"db": "ok", "users": user_count, "url_prefix": db_url_masked}
+        return {"db": "ok", "users": user_count, "url_prefix": db_url_masked, "env_keys": db_env_vars}
     except Exception as e:
-        return {"db": "error", "error": str(e), "url_prefix": db_url_masked}
+        return {"db": "error", "error": str(e), "url_prefix": db_url_masked, "env_keys": db_env_vars}
