@@ -8,6 +8,20 @@ from app.core.database import engine, Base
 from app.routers import auth, topics, units, exercises, students, teachers, leaderboard, classes_router, assignments, lessons, notifications, parents, classroom, content_import
 
 
+async def _startup_db():
+    """Connect to DB and run all setup + migrations in background with retries."""
+    for attempt in range(10):
+        try:
+            async with engine.begin() as conn:
+                await conn.run_sync(Base.metadata.create_all)
+            print("DB connected and tables ready.")
+            break
+        except Exception as e:
+            print(f"DB startup attempt {attempt + 1}/10 failed: {e}")
+            await asyncio.sleep(3)
+    await run_migrations()
+
+
 async def run_migrations():
     """Run DB migrations in the background so startup doesn't block the healthcheck."""
 
@@ -232,12 +246,8 @@ El resultado siempre suma 9:
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Only the critical table-creation blocks startup; migrations run in background
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
-
-    asyncio.create_task(run_migrations())
-
+    # All DB work runs in background — app is ready for healthcheck immediately
+    asyncio.create_task(_startup_db())
     yield
     await engine.dispose()
 
