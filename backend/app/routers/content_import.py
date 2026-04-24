@@ -164,6 +164,55 @@ async def seed_bolivia_curriculum(
 
 
 # -------------------------------------------------------------------------
+# Run FULL curriculum seed (the big one with all grades + Bolivia bonus)
+# -------------------------------------------------------------------------
+
+@router.post("/seed/full")
+async def seed_full_curriculum(
+    user: User = Depends(get_current_user_required),
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Run the FULL curriculum_seed.py — 53+ topics, 280+ exercises.
+
+    This uses the TOPICS list from seed/curriculum_seed.py which includes:
+    - GRADE1..GRADE6 (full G1-G6 Khan-aligned curriculum)
+    - Bonus topics (Aritmética, etc.)
+
+    Idempotent: skips topics/units/lessons/exercises that already exist.
+    """
+    _require_teacher_or_admin(user)
+
+    import sys
+    from pathlib import Path
+    sys.path.insert(0, str(Path(__file__).parent.parent))
+    from seed.curriculum_seed import seed_topics, verify_seed, TOPICS
+
+    print(f"\n📊 Current DB state before seed:")
+    before = await verify_seed()
+    print(f"   Topics: {before[0]}, Units: {before[1]}, Lessons: {before[2]}, Exercises: {before[3]}")
+
+    # Only run if DB is nearly empty (otherwise skip to avoid dupes)
+    topic_count = before[0]
+    if topic_count > 0:
+        return {
+            "message": "DB already has content. Skipping full seed to avoid duplicates.",
+            "current_state": {"topics": before[0], "units": before[1], "lessons": before[2], "exercises": before[3]},
+            "hint": "Clear the DB if you want a full re-seed."
+        }
+
+    created = await seed_topics(db)
+    await db.commit()
+
+    print(f"\n✅ Full seed complete: {created[0]} topics, {created[1]} units, {created[2]} lessons, {created[3]} exercises")
+
+    return {
+        "message": "Full curriculum seeded",
+        "created": {"topics": created[0], "units": created[1], "lessons": created[2], "exercises": created[3]},
+    }
+
+
+# -------------------------------------------------------------------------
 # CSV/JSON import
 # -------------------------------------------------------------------------
 
