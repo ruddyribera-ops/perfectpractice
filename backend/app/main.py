@@ -286,6 +286,22 @@ app.include_router(content_import.router)
 async def health_check():
     return {"status": "healthy", "version": "1.0.2"}
 
+@app.get("/debug/login-test")
+async def debug_login():
+    from sqlalchemy import text as sa_text
+    results = {}
+    try:
+        async with engine.begin() as conn:
+            for table in ["users", "sessions", "students", "teachers"]:
+                try:
+                    r = await conn.execute(sa_text(f"SELECT COUNT(*) FROM {table}"))
+                    results[table] = r.scalar()
+                except Exception as e:
+                    results[table] = f"ERROR: {str(e)[:60]}"
+    except Exception as e:
+        return {"connection": f"FAILED: {str(e)[:100]}"}
+    return {"connection": "ok", "tables": results}
+
 @app.get("/health")
 async def root_health():
     return {"status": "healthy"}
