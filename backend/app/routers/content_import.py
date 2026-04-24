@@ -186,21 +186,13 @@ async def seed_full_curriculum(
     import sys
     from pathlib import Path
     sys.path.insert(0, str(Path(__file__).parent.parent))
-    from seed.curriculum_seed import seed_topics, verify_seed, TOPICS
+    from seed.curriculum_seed import seed_topics, verify_seed
 
     print(f"\n📊 Current DB state before seed:")
     before = await verify_seed()
     print(f"   Topics: {before[0]}, Units: {before[1]}, Lessons: {before[2]}, Exercises: {before[3]}")
 
-    # Only run if DB is nearly empty (otherwise skip to avoid dupes)
-    topic_count = before[0]
-    if topic_count > 0:
-        return {
-            "message": "DB already has content. Skipping full seed to avoid duplicates.",
-            "current_state": {"topics": before[0], "units": before[1], "lessons": before[2], "exercises": before[3]},
-            "hint": "Clear the DB if you want a full re-seed."
-        }
-
+    print("\n🚀 Running full seed (idempotent — skips existing topics/units/lessons)...")
     created = await seed_topics(db)
     await db.commit()
 
@@ -209,6 +201,7 @@ async def seed_full_curriculum(
     return {
         "message": "Full curriculum seeded",
         "created": {"topics": created[0], "units": created[1], "lessons": created[2], "exercises": created[3]},
+        "total_after": {"topics": before[0] + created[0], "units": before[1] + created[1], "lessons": before[2] + created[2], "exercises": before[3] + created[3]},
     }
 
 
