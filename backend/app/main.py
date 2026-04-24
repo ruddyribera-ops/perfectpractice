@@ -290,28 +290,3 @@ async def health_check():
 async def root_health():
     return {"status": "healthy"}
 
-@app.get("/debug/db")
-async def debug_db():
-    import os
-    from app.core.config import settings
-    from sqlalchemy.ext.asyncio import create_async_engine
-    from sqlalchemy import text as sa_text
-    base_url = settings.DATABASE_URL
-    db_url_masked = base_url[:40] + "***" if base_url else "NOT SET"
-    results = {}
-    # Try the configured DB first, then Railway default names
-    for db_name in [None, "railway", "postgres"]:
-        if db_name:
-            test_url = base_url.rsplit("/", 1)[0] + "/" + db_name
-        else:
-            test_url = base_url
-            db_name = base_url.rsplit("/", 1)[-1]
-        try:
-            test_engine = create_async_engine(test_url, pool_pre_ping=False)
-            async with test_engine.begin() as conn:
-                r = await conn.execute(sa_text("SELECT COUNT(*) FROM users"))
-                results[db_name] = {"ok": True, "users": r.scalar()}
-            await test_engine.dispose()
-        except Exception as e:
-            results[db_name] = {"ok": False, "error": str(e)[:80]}
-    return {"url_prefix": db_url_masked, "dbs_tested": results}
