@@ -13,6 +13,7 @@ import re
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func
+from sqlalchemy.orm import selectinload
 
 from app.core.database import get_db
 from app.core.security import get_current_user_required
@@ -71,7 +72,10 @@ async def list_all_topics(
     """Return full topic tree (same as public /api/topics)."""
     _require_teacher_or_admin(user)
     result = await db.execute(
-        select(Topic).where(Topic.parent_id == None).order_by(Topic.id)
+        select(Topic)
+        .where(Topic.parent_id == None)
+        .options(selectinload(Topic.children))
+        .order_by(Topic.id)
     )
     topics = result.scalars().all()
     return [TopicTreeResponse.model_validate(t) for t in topics]
@@ -127,6 +131,7 @@ async def seed_bolivia_curriculum(
                 await db.flush()
                 created["units"] += 1
 
+                first_lesson_id = None
                 for lesson_data in unit_data.get("lessons", []):
                     lesson = Lesson(
                         unit_id=unit.id,
@@ -136,12 +141,14 @@ async def seed_bolivia_curriculum(
                     )
                     db.add(lesson)
                     await db.flush()
+                    if first_lesson_id is None:
+                        first_lesson_id = lesson.id
                     created["lessons"] += 1
 
                 for ex_data in unit_data.get("exercises", []):
                     exercise = Exercise(
                         unit_id=unit.id,
-                        lesson_id=None,
+                        lesson_id=first_lesson_id,
                         slug=ex_data["slug"],
                         title=ex_data["title"],
                         exercise_type=ex_data["exercise_type"],

@@ -2,14 +2,14 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 from sqlalchemy import text
+import asyncio
 
 from app.core.database import engine, Base
 from app.routers import auth, topics, units, exercises, students, teachers, leaderboard, classes_router, assignments, lessons, notifications, parents, classroom, content_import
 
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
+
+async def run_migrations():
+    """Run DB migrations in the background so startup doesn't block the healthcheck."""
 
     # Migration: add assignment_id to exercise_attempts if not exists
     try:
@@ -30,30 +30,25 @@ async def lifespan(app: FastAPI):
     # Migration: rename notifications.student_id to user_id if student_id exists
     try:
         async with engine.begin() as conn:
-            # Check if old student_id column exists
             result = await conn.execute(text("""
                 SELECT column_name FROM information_schema.columns
                 WHERE table_name = 'notifications' AND column_name = 'student_id'
             """))
             if result.fetchone():
-                # Check if user_id column already exists (from a partial migration)
                 has_user = await conn.execute(text("""
                     SELECT column_name FROM information_schema.columns
                     WHERE table_name = 'notifications' AND column_name = 'user_id'
                 """))
                 if not has_user.fetchone():
-                    # Add user_id column first
                     await conn.execute(text("""
                         ALTER TABLE notifications ADD COLUMN user_id INTEGER REFERENCES users(id)
                     """))
-                # Copy data from student_id to user_id using a subquery to get user_id from students
                 await conn.execute(text("""
                     UPDATE notifications
                     SET user_id = subq.user_id
                     FROM (SELECT students.id as student_id, students.user_id as user_id FROM students) AS subq
                     WHERE notifications.student_id = subq.student_id
                 """))
-                # Drop the old column
                 await conn.execute(text("ALTER TABLE notifications DROP COLUMN student_id"))
                 print("Migration: renamed notifications.student_id to user_id")
     except Exception as e:
@@ -74,9 +69,7 @@ async def lifespan(app: FastAPI):
     # Migration: fix parent_student_links.student_id - change 0 to NULL and allow NULL
     try:
         async with engine.begin() as conn:
-            # Set student_id=0 to NULL (unclaimed links)
             await conn.execute(text("UPDATE parent_student_links SET student_id = NULL WHERE student_id = 0"))
-            # Drop NOT NULL constraint
             await conn.execute(text("ALTER TABLE parent_student_links ALTER COLUMN student_id DROP NOT NULL"))
             print("Migration: fixed parent_student_links.student_id (0->NULL, drop NOT NULL)")
     except Exception as e:
@@ -85,7 +78,6 @@ async def lifespan(app: FastAPI):
     # Migration: update lesson content with visual blocks
     try:
         async with engine.begin() as conn:
-            # Update "Introducción a la Suma" lesson content
             await conn.execute(text("""
                 UPDATE lessons SET content = :content
                 WHERE title = 'Introducción a la Suma'
@@ -186,9 +178,9 @@ Memorizar las tablas te hará más rápido. Aquí va la tabla del 2:
 
 ## Truco para la tabla del 9 🧙‍♂️
 El resultado siempre suma 9:
-> 9 × 1 = 9 → 0 + 9 = 9  
-> 9 × 2 = 18 → 1 + 8 = 9  
-> 9 × 3 = 27 → 2 + 7 = 9  
+> 9 × 1 = 9 → 0 + 9 = 9
+> 9 × 2 = 18 → 1 + 8 = 9
+> 9 × 3 = 27 → 2 + 7 = 9
 > etc.
 
 :::tryit:¿Cuánto es 6 × 8?|48|6 × 8 = 48|6 × 8 = 48. ¡60 - 12 = 48!:::
@@ -213,8 +205,42 @@ El resultado siempre suma 9:
     except Exception as e:
         print(f"Migration lessons.content_type skipped: {e}")
 
+    # Migration: assign lesson_id to exercises that have unit_id but lesson_id=NULL
+    try:
+        async with engine.begin() as conn:
+            result = await conn.execute(text(
+                "SELECT COUNT(*) FROM exercises WHERE lesson_id IS NULL AND unit_id IS NOT NULL"
+            ))
+            count = result.scalar()
+            if count:
+                await conn.execute(text("""
+                    UPDATE exercises e
+                    SET lesson_id = (
+                        SELECT l.id FROM lessons l
+                        WHERE l.unit_id = e.unit_id
+                        ORDER BY l.order_index, l.id
+                        LIMIT 1
+                    )
+                    WHERE e.lesson_id IS NULL AND e.unit_id IS NOT NULL
+                """))
+                print(f"Migration: assigned lesson_id to {count} exercises that had unit_id but lesson_id=NULL")
+    except Exception as e:
+        print(f"Migration exercises lesson_id skipped: {e}")
+
+    print("Background migrations complete.")
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Only the critical table-creation blocks startup; migrations run in background
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
+
+    asyncio.create_task(run_migrations())
+
     yield
     await engine.dispose()
+
 
 app = FastAPI(
     title="Math Platform API",
@@ -248,9 +274,8 @@ app.include_router(content_import.router)
 
 @app.get("/api/health")
 async def health_check():
-    return {"status": "healthy", "version": "1.0.1"}
+    return {"status": "healthy", "version": "1.0.2"}
 
 @app.get("/health")
 async def root_health():
     return {"status": "healthy"}
-
