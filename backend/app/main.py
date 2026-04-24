@@ -289,3 +289,16 @@ async def health_check():
 @app.get("/health")
 async def root_health():
     return {"status": "healthy"}
+
+@app.get("/debug/db")
+async def debug_db():
+    from app.core.config import settings
+    from sqlalchemy import text as sa_text
+    db_url_masked = settings.DATABASE_URL[:30] + "***" if settings.DATABASE_URL else "NOT SET"
+    try:
+        async with engine.begin() as conn:
+            result = await conn.execute(sa_text("SELECT COUNT(*) FROM users"))
+            user_count = result.scalar()
+        return {"db": "ok", "users": user_count, "url_prefix": db_url_masked}
+    except Exception as e:
+        return {"db": "error", "error": str(e), "url_prefix": db_url_masked}
