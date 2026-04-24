@@ -2,6 +2,7 @@ from pydantic import BaseModel
 from datetime import datetime, date
 from typing import Optional, Any
 
+
 class ProgressResponse(BaseModel):
     topic_id: int
     topic_title: str
@@ -9,38 +10,13 @@ class ProgressResponse(BaseModel):
     total_exercises: int
     mastery_score: float
 
+
 class AttemptRequest(BaseModel):
     answer: Any
     time_spent_seconds: int = 0
     assignment_id: Optional[int] = None
     helped_peer_id: Optional[int] = None
 
-class AttemptResponse(BaseModel):
-    correct: bool
-    points_earned: int
-    xp_earned: int
-    explanation: Optional[str]
-    new_mastery: float
-    streak_updated: bool
-    current_streak: int
-    new_achievements: list["AchievementResponse"] = []
-
-class StreakResponse(BaseModel):
-    current_streak: int
-    longest_streak: int
-    last_activity_date: Optional[date]
-    streak_freeze_available: int
-    streak_at_risk: bool
-
-class StatsResponse(BaseModel):
-    total_xp: int
-    level: int
-    points: int
-    current_streak: int
-    longest_streak: int
-    exercises_completed: int
-    lessons_completed: int
-    xp_to_next_level: int
 
 class AchievementResponse(BaseModel):
     id: int
@@ -53,11 +29,41 @@ class AchievementResponse(BaseModel):
         from_attributes = True
 
 
+class AttemptResponse(BaseModel):
+    correct: bool
+    points_earned: int
+    xp_earned: int
+    explanation: Optional[str]
+    new_mastery: float
+    streak_updated: bool
+    current_streak: int
+    new_achievements: list[AchievementResponse] = []
+
+
+class StreakResponse(BaseModel):
+    current_streak: int
+    longest_streak: int
+    last_activity_date: Optional[date]
+    streak_freeze_available: int
+    streak_at_risk: bool
+
+
+class StatsResponse(BaseModel):
+    total_xp: int
+    level: int
+    points: int
+    current_streak: int
+    longest_streak: int
+    exercises_completed: int
+    lessons_completed: int
+    xp_to_next_level: int
+
+
 class StreakFreezeResponse(BaseModel):
     success: bool
     message: str
     freezes_remaining: int
-    new_achievements: list["AchievementResponse"] = []
+    new_achievements: list[AchievementResponse] = []
 
 
 class AttemptHistoryItem(BaseModel):

@@ -2,6 +2,7 @@ from pydantic import BaseModel
 from datetime import datetime
 from typing import Optional, Any
 
+
 class TopicTreeResponse(BaseModel):
     id: int
     slug: str
@@ -12,6 +13,9 @@ class TopicTreeResponse(BaseModel):
     class Config:
         from_attributes = True
 
+TopicTreeResponse.model_rebuild()
+
+
 class UnitResponse(BaseModel):
     id: int
     slug: str
@@ -20,6 +24,7 @@ class UnitResponse(BaseModel):
     order_index: int
     class Config:
         from_attributes = True
+
 
 class TopicDetailResponse(BaseModel):
     id: int
@@ -31,6 +36,7 @@ class TopicDetailResponse(BaseModel):
     class Config:
         from_attributes = True
 
+
 class LessonResponse(BaseModel):
     id: int
     unit_id: int
@@ -41,17 +47,6 @@ class LessonResponse(BaseModel):
     class Config:
         from_attributes = True
 
-class LessonDetailResponse(BaseModel):
-    id: int
-    unit_id: int
-    unit_slug: str
-    title: str
-    content: str
-    content_type: str = "text"
-    order_index: int
-    exercises: list["ExerciseResponse"] = []
-    class Config:
-        from_attributes = True
 
 class ExerciseResponse(BaseModel):
     id: int
@@ -68,6 +63,20 @@ class ExerciseResponse(BaseModel):
     is_summative: bool
     class Config:
         from_attributes = True
+
+
+class LessonDetailResponse(BaseModel):
+    id: int
+    unit_id: int
+    unit_slug: str
+    title: str
+    content: str
+    content_type: str = "text"
+    order_index: int
+    exercises: list[ExerciseResponse] = []
+    class Config:
+        from_attributes = True
+
 
 class UnitDetailResponse(BaseModel):
     id: int
