@@ -160,10 +160,11 @@ export default function ParentDashboardPage() {
 
   useEffect(() => {
     if (user?.role !== 'parent') { router.replace('/'); return; }
+    if (!loading) return; // already fetched or errored, skip
     api.getParentDashboard()
       .then(d => { setData(d); setLoading(false); })
       .catch(() => setLoading(false));
-  }, [user, router]);
+  }, [user, router, loading]);
 
   const refresh = () => api.getParentDashboard().then(setData);
 
