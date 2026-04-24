@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/contexts/AuthContext';
@@ -156,15 +156,17 @@ export default function ParentDashboardPage() {
   const [linkCode, setLinkCode] = useState('');
   const [codeLoading, setCodeLoading] = useState(false);
   const [studentCode, setStudentCode] = useState('');
+  const fetchedRef = useRef(false);
   const [linkMsg, setLinkMsg] = useState('');
 
   useEffect(() => {
     if (user?.role !== 'parent') { router.replace('/'); return; }
-    if (!loading) return; // already fetched or errored, skip
+    if (fetchedRef.current) return;
+    fetchedRef.current = true;
     api.getParentDashboard()
       .then(d => { setData(d); setLoading(false); })
       .catch(() => setLoading(false));
-  }, [user, router, loading]);
+  }, [user, router]);
 
   const refresh = () => api.getParentDashboard().then(setData);
 
