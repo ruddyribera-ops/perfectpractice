@@ -6,5 +6,6 @@ dockerfilePath = "frontend/Dockerfile"
 healthcheckPath = "/"
 healthcheckPort = 8080
 healthcheckTimeout = 300
+startCommand = "node server.js"
 restartPolicyType = "ON_FAILURE"
 restartPolicyMaxRetries = 3
