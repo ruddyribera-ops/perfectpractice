@@ -22,7 +22,7 @@ export default function LoginPage() {
     try {
       const user = await login(email, password)
       // login() returns the user synchronously into context — route based on role
-      if (user.role === 'student') router.push('/student')
+      if (user.role === 'student') router.push('/')
       else if (user.role === 'parent') router.push('/parent')
       else router.push('/teacher')
     } catch (err: any) {

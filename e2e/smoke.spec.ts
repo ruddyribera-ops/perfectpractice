@@ -12,24 +12,23 @@ test.describe('Production Smoke Tests', () => {
     expect(body).toHaveProperty('status', 'healthy');
   });
 
-  test('frontend loads and shows login page', async ({ page }) => {
-    await page.goto(FRONTEND_URL, { waitUntil: 'domcontentloaded' });
-    // Should land on login page (no redirect to /student yet)
-    await expect(page).toHaveTitle(/./);
-    // Check a login-related element is visible
-    const loginButton = page.getByRole('button', { name: /Iniciar Sesión/i });
-    await expect(loginButton.or(page.getByRole('textbox', { name: /Correo electrónico/i }))).toBeVisible({ timeout: 10000 });
+  test('frontend loads and shows landing page', async ({ page }) => {
+    await page.goto(FRONTEND_URL, { waitUntil: 'networkidle' });
+    // Should show landing page for unauthenticated users
+    await expect(page.getByText('Aprende Matemáticas Jugando')).toBeVisible({ timeout: 10000 });
+    // Should have login link
+    await expect(page.getByRole('link', { name: /Iniciar sesión/i })).toBeVisible();
   });
 
-  test('login as student@test.com redirects to dashboard', async ({ page }) => {
-    await page.goto(`${FRONTEND_URL}/login`);
+  test('login as student@test.com shows dashboard', async ({ page }) => {
+    await page.goto(`${FRONTEND_URL}/login`, { waitUntil: 'networkidle' });
     await page.locator('input[type="email"]').fill('student@test.com');
     await page.locator('input[type="password"]').fill('test123');
     await page.locator('button[type="submit"]').click();
-    // Should redirect somewhere under /student
-    await page.waitForURL(/\/student/, { timeout: 10000 });
-    // Dashboard should show something meaningful
-    await expect(page.getByText(/estudiante|student|xp|progreso|puntos/i).or(page.locator('body'))).toBeVisible({ timeout: 5000 });
+    // Student lands on / (root) not /student
+    await page.waitForURL(/^https:\/\/proactive-wisdom-production.*\/$/, { timeout: 10000 });
+    // Dashboard should load (shows stats cards)
+    await expect(page.getByText(/Math Platform|XP Total|Nivel|Racha|Ejercicios/i)).toBeVisible({ timeout: 10000 });
   });
 
   test('unauthenticated /api/me returns 401', async ({ request }) => {
