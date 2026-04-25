@@ -15,7 +15,10 @@ class Settings(BaseSettings):
     @field_validator("DATABASE_URL", mode="before")
     @classmethod
     def force_railway_db(cls, v: str) -> str:
-        return v.rsplit("/", 1)[0] + "/railway"
+        # Only force /railway when RAILWAY_ENVIRONMENT is set ( Railway production )
+        if os.environ.get("RAILWAY_ENVIRONMENT"):
+            return v.rsplit("/", 1)[0] + "/railway"
+        return v
     REDIS_URL: str = os.environ.get("REDIS_URL", "redis://redis:6379")
     JWT_SECRET: str = os.environ.get("JWT_SECRET", "dev-secret-change-in-prod-min-32-chars!!")
     JWT_REFRESH_SECRET: str = os.environ.get("JWT_REFRESH_SECRET", "dev-refresh-secret-change-in-prod-min-32!")
