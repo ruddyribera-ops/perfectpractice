@@ -1,0 +1,36 @@
+name: Deploy (Manual)
+
+on:
+  workflow_dispatch:
+    inputs:
+      service:
+        description: 'Service to deploy (lucid-serenity or proactive-wisdom)'
+        required: true
+        default: lucid-serenity
+        type: choice
+        options:
+          - lucid-serenity
+          - proactive-wisdom
+      service2:
+        description: 'Second service to deploy (optional)'
+        required: false
+        type: choice
+        options:
+          - none
+          - lucid-serenity
+          - proactive-wisdom
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: railwayapp/deploy-action@v2
+        with:
+          railway_token: ${{ secrets.RAILWAY_TOKEN }}
+          service: ${{ inputs.service }}
+      - if: inputs.service2 != 'none'
+        uses: railwayapp/deploy-action@v2
+        with:
+          railway_token: ${{ secrets.RAILWAY_TOKEN }}
+          service: ${{ inputs.service2 }}
