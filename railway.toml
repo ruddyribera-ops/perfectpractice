@@ -1,0 +1,10 @@
+[build]
+context = "frontend"
+dockerfilePath = "frontend/Dockerfile"
+
+[deploy]
+healthcheckPath = "/"
+healthcheckPort = 8080
+healthcheckTimeout = 300
+restartPolicyType = "ON_FAILURE"
+restartPolicyMaxRetries = 3
