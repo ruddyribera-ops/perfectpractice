@@ -102,7 +102,7 @@ export default function ExercisePage() {
   const id = exerciseId ? parseInt(exerciseId, 10) : NaN
 
   const [exercise, setExercise] = useState<Exercise | null>(null)
-  const [loading, setLoading] = useState(true)
+  const [isLoadingExercise, setIsLoadingExercise] = useState(true)
   const [answer, setAnswer] = useState<string>('')
   const [barModelConstruction, setBarModelConstruction] = useState<BarModelConstructionJSON | null>(null)
   const [selectedOption, setSelectedOption] = useState<number | null>(null)
@@ -147,7 +147,7 @@ export default function ExercisePage() {
         setExercise(null)
       }
     } finally {
-      setLoading(false)
+      setIsLoadingExercise(false)
     }
   }
 
