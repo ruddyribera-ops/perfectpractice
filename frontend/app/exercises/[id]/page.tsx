@@ -96,7 +96,7 @@ function WordProblemDisplay({ data }: { data: import('@/lib/api').WordProblemDat
 export default function ExercisePage() {
   const params = useParams()
   const router = useRouter()
-  const { user } = useAuth()
+  const { user, loading } = useAuth()
 
   const exerciseId = params.id as string
   const id = exerciseId ? parseInt(exerciseId, 10) : NaN
@@ -116,10 +116,10 @@ export default function ExercisePage() {
   const startTime = useRef(Date.now())
 
   useEffect(() => {
-    if (user === undefined) return
+    if (loading) return
     if (user === null) { router.push('/login'); return }
     if (id && !isNaN(id) && id > 0) fetchExercise()
-  }, [user, id, router])
+  }, [user, loading, id, router])
 
   const fetchExercise = async () => {
     try {

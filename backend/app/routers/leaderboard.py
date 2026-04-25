@@ -20,23 +20,47 @@ async def get_global_leaderboard(
 ):
     redis = await get_redis()
     key = f"leaderboard:global:{period}"
-    entries = await redis.zrevrange(key, 0, limit - 1, withscores=True)
     leaderboard = []
-    for rank, (student_id_str, points) in enumerate(entries, 1):
-        student_id = int(student_id_str)
-        result = await db.execute(
-            select(Student).where(Student.id == student_id).options(selectinload(Student.user))
-        )
-        student = result.scalar_one_or_none()
-        if student:
-            leaderboard.append(LeaderboardEntry(
-                rank=rank,
-                student_id=student.id,
-                student_name=student.user.name,
-                points=int(points),
-                avatar_url=student.avatar_url,
-                level=student.level,
-            ))
+
+    # Try Redis first, fall back to DB
+    if redis:
+        try:
+            entries = await redis.zrevrange(key, 0, limit - 1, withscores=True)
+            for rank, (student_id_str, points) in enumerate(entries, 1):
+                student_id = int(student_id_str)
+                result = await db.execute(
+                    select(Student).where(Student.id == student_id).options(selectinload(Student.user))
+                )
+                student = result.scalar_one_or_none()
+                if student:
+                    leaderboard.append(LeaderboardEntry(
+                        rank=rank,
+                        student_id=student.id,
+                        student_name=student.user.name,
+                        points=int(points),
+                        avatar_url=student.avatar_url,
+                        level=student.level,
+                    ))
+            return leaderboard
+        except Exception:
+            pass  # Redis unavailable — fall through to DB query
+
+    # Fallback: query DB ordered by total_xp
+    result = await db.execute(
+        select(Student).options(selectinload(Student.user))
+        .order_by(Student.total_xp.desc())
+        .limit(limit)
+    )
+    students = result.scalars().all()
+    for rank, student in enumerate(students, 1):
+        leaderboard.append(LeaderboardEntry(
+            rank=rank,
+            student_id=student.id,
+            student_name=student.user.name,
+            points=student.total_xp,
+            avatar_url=student.avatar_url,
+            level=student.level,
+        ))
     return leaderboard
 
 
@@ -54,14 +78,32 @@ async def get_my_leaderboard_position(
 
     periods = ["weekly", "monthly", "all_time"]
     result = {}
-    for period in periods:
-        key = f"leaderboard:global:{period}"
-        rank = await redis.zrevrank(key, student.id)
-        score = await redis.zscore(key, student.id)
-        result[period] = {
-            "rank": (rank + 1) if rank is not None else None,
-            "points": int(score) if score is not None else 0,
-        }
+
+    if redis:
+        try:
+            for period in periods:
+                key = f"leaderboard:global:{period}"
+                rank = await redis.zrevrank(key, student.id)
+                score = await redis.zscore(key, student.id)
+                result[period] = {
+                    "rank": (rank + 1) if rank is not None else None,
+                    "points": int(score) if score is not None else 0,
+                }
+        except Exception:
+            redis = None  # Force fallback
+
+    if not redis:
+        # Fallback: use total_xp from DB
+        for period in periods:
+            # Count students with more XP for ranking
+            rank_result = await db.execute(
+                select(Student.id).where(Student.total_xp > student.total_xp)
+            )
+            rank = len(rank_result.scalars().all())
+            result[period] = {
+                "rank": rank + 1,
+                "points": student.total_xp,
+            }
 
     return LeaderboardMeResponse(
         student_id=student.id,

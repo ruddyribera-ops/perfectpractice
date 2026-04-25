@@ -217,8 +217,12 @@ async def submit_attempt(exercise_id: int, data: AttemptRequest, user: User = De
         student.last_activity_date = today
 
         redis = await get_redis()
-        await redis.zincrby("leaderboard:global:all_time", points_earned, student.id)
-        await redis.zincrby("leaderboard:global:weekly", points_earned, student.id)
+        if redis and points_earned > 0:
+            try:
+                await redis.zincrby("leaderboard:global:all_time", points_earned, student.id)
+                await redis.zincrby("leaderboard:global:weekly", points_earned, student.id)
+            except Exception:
+                pass  # Redis unavailable — skip leaderboard update
 
     await db.commit()
 
