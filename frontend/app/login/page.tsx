@@ -11,6 +11,7 @@ export default function LoginPage() {
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const router = useRouter()
+  // Use a ref to get the current user immediately after login (avoids stale closure)
   const { login } = useAuth()
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -19,8 +20,11 @@ export default function LoginPage() {
     setLoading(true)
 
     try {
-      await login(email, password)
-      router.push('/')
+      const user = await login(email, password)
+      // login() returns the user synchronously into context — route based on role
+      if (user.role === 'student') router.push('/student')
+      else if (user.role === 'parent') router.push('/parent')
+      else router.push('/teacher')
     } catch (err: any) {
       setError(err.message || 'Error al iniciar sesión')
     } finally {
