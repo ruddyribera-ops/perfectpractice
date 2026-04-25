@@ -1,0 +1,11 @@
+[build]
+context = "."
+dockerfilePath = "Dockerfile"
+
+[deploy]
+healthcheckPath = "/api/health"
+healthcheckPort = 8080
+healthcheckTimeout = 300
+startCommand = "node server.js"
+restartPolicyType = "ON_FAILURE"
+restartPolicyMaxRetries = 3
