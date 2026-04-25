@@ -9,6 +9,10 @@ const inter = Inter({ subsets: ['latin'] })
 export const metadata: Metadata = {
   title: 'Math Platform - Aprende Matemáticas',
   description: 'Plataforma de aprendizaje de matemáticas estilo Khan Academy para escuelas bolivianas',
+  icons: {
+    icon: '/favicon.svg',
+    apple: '/favicon.svg',
+  },
 }
 
 export default function RootLayout({
