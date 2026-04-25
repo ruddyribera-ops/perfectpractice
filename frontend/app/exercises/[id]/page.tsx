@@ -102,7 +102,7 @@ export default function ExercisePage() {
   const id = exerciseId ? parseInt(exerciseId, 10) : NaN
 
   const [exercise, setExercise] = useState<Exercise | null>(null)
-  const [loading, setLoading] = useState(true)
+  const [exerciseLoading, setExerciseLoading] = useState(true)
   const [answer, setAnswer] = useState<string>('')
   const [barModelConstruction, setBarModelConstruction] = useState<BarModelConstructionJSON | null>(null)
   const [selectedOption, setSelectedOption] = useState<number | null>(null)
@@ -147,7 +147,7 @@ export default function ExercisePage() {
         setExercise(null)
       }
     } finally {
-      setLoading(false)
+      setExerciseLoading(false)
     }
   }
 
@@ -224,7 +224,7 @@ export default function ExercisePage() {
 
   const hints = exercise?.hints ?? []
 
-  if (loading) return (
+  if (exerciseLoading) return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50">
       <div className="text-center">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto mb-4"></div>
