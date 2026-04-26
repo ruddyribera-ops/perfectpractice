@@ -1,0 +1,8 @@
+node_modules
+.next
+out
+.git
+.github
+test-results
+*.md
+!README.md

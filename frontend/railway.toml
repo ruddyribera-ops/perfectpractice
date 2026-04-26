@@ -1,7 +1,6 @@
 [build]
 context = "."
 dockerfilePath = "Dockerfile"
-buildArgs = ["NEXT_PUBLIC_API_URL=https://lucid-serenity-production.up.railway.app"]
 
 [deploy]
 healthcheckPath = "/api/health"
