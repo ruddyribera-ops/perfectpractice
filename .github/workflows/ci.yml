@@ -34,11 +34,15 @@ jobs:
       - uses: actions/checkout@v4
       - name: Install Railway CLI
         run: npm install -g @railway/cli
+      - name: Install Railway CLI
+        run: npm install -g @railway/cli
+      - name: Check Railway token
+        run: |
+          echo "Token starts with: $RAILWAY_TOKEN"
+          railway whoami
       - name: Deploy backend
         working-directory: backend
-        run: |
-          railway link --project 512f7f30-e591-462b-9a61-64381608e12f --yes
-          railway up --service lucid-serenity
+        run: railway up --service lucid-serenity
         env:
           RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
 
@@ -50,10 +54,12 @@ jobs:
       - uses: actions/checkout@v4
       - name: Install Railway CLI
         run: npm install -g @railway/cli
+      - name: Check Railway token
+        run: |
+          echo "Token starts with: $RAILWAY_TOKEN"
+          railway whoami
       - name: Deploy frontend
         working-directory: frontend
-        run: |
-          railway link --project 512f7f30-e591-462b-9a61-64381608e12f --yes
-          railway up --service proactive-wisdom
+        run: railway up --service proactive-wisdom
         env:
           RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}

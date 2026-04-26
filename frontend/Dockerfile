@@ -9,6 +9,8 @@ RUN date > /tmp/buildtime.txt && npm install --omit=dev --no-cache
 
 # Stage 2: Build
 FROM base AS builder
+ARG NEXT_PUBLIC_API_URL
+ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
 COPY package*.json ./
 RUN date > /tmp/buildtime.txt && npm install --no-cache
 COPY . .
