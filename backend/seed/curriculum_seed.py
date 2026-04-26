@@ -122,7 +122,7 @@ Practica contando del 1 al 10.""",
 
 ¡Contamos juntos hasta **20**!
 
-##group=10+ones
+## Un grupo de 10 más unidades
 10 y 1 = **11** (diez y uno)
 10 y 2 = **12** (diez y dos)
 ...
@@ -248,7 +248,7 @@ El círculo es una forma **redonda**.
 **Ejemplos en la vida real:**
 - 🧁 La tapa de un vaso
 - 🔴 Una moneda
-- ⭕ La wheels de una voiture
+- ⭕ Las ruedas de un auto
 
 :::tryit:¿Cuál de estos es un círculo? (🔴 A) (🔺 B) (⬜ C)|A|El círculo es redondo:::
 :::tryit:¿Cuántos lados tiene un círculo?|0|El círculo no tiene lados|0 lados:::
@@ -1424,11 +1424,11 @@ Una **razón** compara dos cantidades.
 Se puede escribir como **a:b** o **a/b**.
 
 **Ejemplo:** En una clase hay 12 niñas y 8 niños.
-Razón niñas:nños = 12:8 = **3:2** (simplificada)
+Razón niñas:niños = 12:8 = **3:2** (simplificada)
 
 :::tryit:La razón de rojo:azul es 3:2. Si hay 6 azules, ¿cuántos rojos?|9|3/2=x/6 → x=9|9:::
 :::tryit:Simplifica 15:25.|3:5|15÷5=3, 25÷5=5|3:5:::
-:::tryit:La razón de teachers:students es 1:20. Si hay 5 teachers, ¿cuántos students?|100|1:20=5:x → x=100|100:::
+:::tryit:La razón de profesores:estudiantes es 1:20. Si hay 5 profesores, ¿cuántos estudiantes?|100|1:20=5:x → x=100|100:::
 Practica.""",
                         "order_index": 0,
                         "exercise_slugs": ["g6-razon-1", "g6-razon-2", "g6-razon-3"],
@@ -1531,7 +1531,7 @@ Practica.""",
                      "data": {"question": "¿10% de 450?", "correct_answer": "45", "explanation": "450×10÷100=45"},
                      "hints": ["450×10÷100=45"]},
                     {"slug": "g6-pct-desc-1", "title": "Descuento", "exercise_type": ExerciseType.numeric, "difficulty": Difficulty.hard, "points": 20,
-                     "data": {"question": "UnTV cuesta $800 con 25% de descuento. ¿Precio final?", "correct_answer": "600", "explanation": "800×25÷100=200 desc → 800-200=600"},
+                     "data": {"question": "Un TV cuesta $800 con 25% de descuento. ¿Precio final?", "correct_answer": "600", "explanation": "800×25÷100=200 desc → 800-200=600"},
                      "hints": ["800-200=600"]},
                 ],
             },
@@ -1891,19 +1891,19 @@ La **división** es **repartir en partes iguales**. Es lo opuesto a la multiplic
                 "exercises": [
                     {"slug": "division-basica", "title": "División básica", "exercise_type": ExerciseType.numeric, "difficulty": Difficulty.easy, "points": 10,
                      "data": {"question": "¿Cuánto es 24 ÷ 4?", "correct_answer": "6", "explanation": "24 ÷ 4 = 6 porque 6 × 4 = 24"},
-                     "hints": ["24 ÷ 4: combienas veces cabe 4 en 24", "4 × 6 = 24, entonces 24 ÷ 4 = 6", "6"]},
+                     "hints": ["24 ÷ 4: cuántas veces cabe 4 en 24", "4 × 6 = 24, entonces 24 ÷ 4 = 6", "6"]},
                     {"slug": "division-2", "title": "División entre 2", "exercise_type": ExerciseType.multiple_choice, "difficulty": Difficulty.easy, "points": 10,
                      "data": {"question": "¿Cuánto es 18 ÷ 2?", "choices": ["6", "8", "9", "12"], "correct_answer": "9", "explanation": "18 ÷ 2 = 9. Mitad de 18 es 9."},
                      "hints": ["Dividir entre 2 es encontrar la mitad", "La mitad de 18 = 9", "18 ÷ 2 = 9"]},
                     {"slug": "division-3", "title": "División entre 3", "exercise_type": ExerciseType.multiple_choice, "difficulty": Difficulty.easy, "points": 10,
                      "data": {"question": "¿Cuánto es 27 ÷ 3?", "choices": ["6", "7", "8", "9"], "correct_answer": "9", "explanation": "27 ÷ 3 = 9. 9 × 3 = 27."},
-                     "hints": ["27 ÷ 3: combienas veces cabe 3 en 27", "9 × 3 = 27, entonces 27 ÷ 3 = 9", "9"]},
+                     "hints": ["27 ÷ 3: cuántas veces cabe 3 en 27", "9 × 3 = 27, entonces 27 ÷ 3 = 9", "9"]},
                     {"slug": "division-4", "title": "División entre 4", "exercise_type": ExerciseType.multiple_choice, "difficulty": Difficulty.easy, "points": 10,
                      "data": {"question": "¿Cuánto es 32 ÷ 4?", "choices": ["6", "7", "8", "9"], "correct_answer": "8", "explanation": "32 ÷ 4 = 8. 8 × 4 = 32."},
                      "hints": ["32 ÷ 4: la mitad de la mitad", "Mitad de 32 = 16, mitad de 16 = 8", "8"]},
                     {"slug": "division-5", "title": "División entre 5", "exercise_type": ExerciseType.multiple_choice, "difficulty": Difficulty.easy, "points": 10,
                      "data": {"question": "¿Cuánto es 45 ÷ 5?", "choices": ["7", "8", "9", "10"], "correct_answer": "9", "explanation": "45 ÷ 5 = 9. 9 × 5 = 45."},
-                     "hints": ["45 ÷ 5: combienas veces cabe 5 en 45", "5 × 9 = 45, entonces 45 ÷ 5 = 9", "9"]},
+                     "hints": ["45 ÷ 5: cuántas veces cabe 5 en 45", "5 × 9 = 45, entonces 45 ÷ 5 = 9", "9"]},
                     {"slug": "division-sobres", "title": "División con residuo", "exercise_type": ExerciseType.numeric, "difficulty": Difficulty.medium, "points": 15,
                      "data": {"question": "¿Cuál es el residuo de 17 ÷ 5?", "correct_answer": "2", "explanation": "17 ÷ 5 = 3 residuo 2 porque 5×3=15, 17-15=2"},
                      "hints": ["5 cabe 3 veces en 17 (5×3=15)", "Sobró 17 - 15 = 2", "El residuo es 2"]},

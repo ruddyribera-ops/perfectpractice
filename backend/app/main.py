@@ -311,6 +311,95 @@ async def debug_login():
 async def root_health():
     return {"status": "healthy"}
 
+@app.post("/api/admin/cleanup-content")
+async def cleanup_content_endpoint():
+    """Fix content issues across all exercises and lessons."""
+    from sqlalchemy import text as sa_text
+
+    # Map of (search_pattern, replacement) for content cleanup
+    replacements = [
+        # Foreign words mixed with Spanish
+        ("combienas veces", "cuántas veces"),
+        ("combien", "cuánto"),
+        ("voiture", "auto"),
+        (" wheels ", " ruedas "),
+        ("ver instantly", "ver inmediatamente"),
+        ("instantly", "inmediatamente"),
+        ("La wheels de una voiture", "Las ruedas de un auto"),
+        ("UnTV", "Un TV"),
+        # Broken markdown markers
+        ("##group=10+ones\n", ""),
+        ("##group=10+ones", ""),
+        # Mixed English
+        ("Si hay 5 teachers, ¿cuántos students?", "Si hay 5 profesores, ¿cuántos estudiantes?"),
+        ("teachers:students", "profesores:estudiantes"),
+        ("5 teachers", "5 profesores"),
+        ("100 students", "100 estudiantes"),
+        ("la razón de teachers", "la razón de profesores"),
+    ]
+
+    results = {"exercises_updated": 0, "lessons_updated": 0, "details": []}
+
+    async with engine.begin() as conn:
+        # Fix exercise hints, questions, explanations (data is JSONB)
+        for search, replace in replacements:
+            r = await conn.execute(sa_text("""
+                UPDATE exercises
+                SET data = data::text::jsonb
+                WHERE data::text LIKE :pattern
+            """), {"pattern": f"%{search}%"})
+
+            # Use jsonb update with replace
+            r2 = await conn.execute(sa_text("""
+                UPDATE exercises
+                SET data = REPLACE(data::text, :search, :replace)::jsonb
+                WHERE data::text LIKE :pattern
+            """), {"search": search, "replace": replace, "pattern": f"%{search}%"})
+            if r2.rowcount > 0:
+                results["details"].append(f"exercises.data: '{search}' -> '{replace}' ({r2.rowcount} rows)")
+                results["exercises_updated"] += r2.rowcount
+
+            # Fix exercise hints (hints is a JSON array, stored as JSONB)
+            r3 = await conn.execute(sa_text("""
+                UPDATE exercises
+                SET hints = REPLACE(hints::text, :search, :replace)::jsonb
+                WHERE hints::text LIKE :pattern
+            """), {"search": search, "replace": replace, "pattern": f"%{search}%"})
+            if r3.rowcount > 0:
+                results["details"].append(f"exercises.hints: '{search}' -> '{replace}' ({r3.rowcount} rows)")
+                results["exercises_updated"] += r3.rowcount
+
+            # Fix lesson content (TEXT column)
+            r4 = await conn.execute(sa_text("""
+                UPDATE lessons
+                SET content = REPLACE(content, :search, :replace)
+                WHERE content LIKE :pattern
+            """), {"search": search, "replace": replace, "pattern": f"%{search}%"})
+            if r4.rowcount > 0:
+                results["details"].append(f"lessons.content: '{search}' -> '{replace}' ({r4.rowcount} rows)")
+                results["lessons_updated"] += r4.rowcount
+
+        # Fill empty explanations with helpful default text based on hints
+        r5 = await conn.execute(sa_text("""
+            UPDATE exercises
+            SET data = jsonb_set(
+                data,
+                '{explanation}',
+                to_jsonb(CASE
+                    WHEN hints IS NOT NULL AND jsonb_array_length(hints) > 0
+                    THEN hints->>-1
+                    ELSE '¡Bien hecho!'
+                END)
+            )
+            WHERE data->>'explanation' = ''
+        """))
+        if r5.rowcount > 0:
+            results["details"].append(f"Filled {r5.rowcount} empty explanations with last hint")
+            results["exercises_updated"] += r5.rowcount
+
+    return results
+
+
 @app.post("/api/admin/seed-curriculum")
 async def seed_curriculum_endpoint():
     """Seed full curriculum (G1-G6) into database. Admin only."""
