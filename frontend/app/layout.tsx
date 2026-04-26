@@ -1,10 +1,11 @@
 import type { Metadata } from 'next'
-import { Inter } from 'next/font/google'
+import { Inter, Nunito } from 'next/font/google'
 import './globals.css'
 import { AuthProvider } from '@/contexts/AuthContext'
 import { Providers } from './providers'
 
 const inter = Inter({ subsets: ['latin'] })
+const nunito = Nunito({ variable: '--font-nunito', subsets: ['latin'] })
 
 export const metadata: Metadata = {
   title: 'Math Platform - Aprende Matemáticas',
@@ -21,7 +22,7 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="es" suppressHydrationWarning>
+    <html lang="es" suppressHydrationWarning className={nunito.variable}>
       <body className={inter.className}>
         <AuthProvider>
           <Providers>

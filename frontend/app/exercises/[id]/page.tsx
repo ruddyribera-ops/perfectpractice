@@ -16,21 +16,21 @@ function BarModelDisplay({ data }: { data: import('@/lib/api').BarModelData }) {
   const totalVal = parseFloat(total) || maxVal
 
   return (
-    <div className="bg-white dark:bg-slate-800 rounded-xl p-4 border border-gray-200 dark:border-slate-600">
+    <div style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-color)' }} className="rounded-xl p-4 border">
       <div className="flex items-center gap-2 mb-3">
         <span className="text-lg">📊</span>
-        <p className="font-semibold text-gray-700 dark:text-gray-100 text-sm">Modelo de Barras</p>
+        <p className="font-semibold text-sm" style={{ color: 'var(--text-primary)' }}>Modelo de Barras</p>
         {type && type !== 'comparison' && (
-          <span className="text-xs bg-primary-100 dark:bg-primary-900 text-primary-700 dark:text-primary-300 px-2 py-0.5 rounded-full capitalize">{type}</span>
+          <span className="text-xs px-2 py-0.5 rounded-full capitalize" style={{ backgroundColor: 'rgba(3, 105, 161, 0.2)', color: 'var(--accent-blue)' }}>{type}</span>
         )}
       </div>
-      <p className="text-gray-800 dark:text-gray-200 text-base font-medium mb-4">{question}</p>
+      <p className="text-base font-medium mb-4" style={{ color: 'var(--text-primary)' }}>{question}</p>
       <div className="space-y-3">
         {units.map((unit, idx) => {
           const widthPct = Math.min((unit.value / totalVal) * 100, 100)
           return (
             <div key={idx} className="flex items-center gap-3">
-              <span className="w-20 text-xs text-gray-600 dark:text-gray-300 text-right flex-shrink-0 truncate">{unit.label}</span>
+              <span className="w-20 text-xs text-right flex-shrink-0 truncate" style={{ color: 'var(--text-secondary)' }}>{unit.label}</span>
               <div className="flex-1 relative">
                 <div
                   className={`h-8 ${colors[idx % colors.length]} rounded-lg flex items-center px-3 min-w-0`}
@@ -43,12 +43,12 @@ function BarModelDisplay({ data }: { data: import('@/lib/api').BarModelData }) {
           )
         })}
         <div className="flex items-center gap-3 pt-1">
-          <span className="w-20 text-xs text-gray-600 dark:text-gray-300 text-right flex-shrink-0">Total</span>
+          <span className="w-20 text-xs text-right flex-shrink-0" style={{ color: 'var(--text-secondary)' }}>Total</span>
           <div className="flex-1">
-            <div className="h-2 bg-gray-200 dark:bg-slate-600 rounded-full overflow-hidden">
+            <div className="h-2 rounded-full overflow-hidden" style={{ backgroundColor: 'var(--bg-secondary)' }}>
               <div className="h-full bg-gradient-to-r from-primary-400 to-purple-400 rounded-full" />
             </div>
-            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 font-medium">= {total}</p>
+            <p className="text-xs mt-1 font-medium" style={{ color: 'var(--text-muted)' }}>= {total}</p>
           </div>
         </div>
       </div>
@@ -62,19 +62,19 @@ function WordProblemDisplay({ data }: { data: import('@/lib/api').WordProblemDat
   const { scenario, question, answer, hint } = data
 
   return (
-    <div className="bg-yellow-50 dark:bg-yellow-900/20 rounded-xl p-4 border border-yellow-300 dark:border-yellow-700">
+    <div className="rounded-xl p-4 border" style={{ backgroundColor: 'rgba(234, 179, 8, 0.1)', borderColor: 'rgba(234, 179, 8, 0.3)' }}>
       <div className="flex items-center gap-2 mb-3">
         <span className="text-lg">📖</span>
-        <p className="font-semibold text-yellow-800 dark:text-yellow-200 text-sm">Problema Verbal</p>
+        <p className="font-semibold text-sm" style={{ color: 'var(--accent-yellow)' }}>Problema Verbal</p>
       </div>
-      <div className="bg-white/60 dark:bg-slate-800 rounded-lg p-3 mb-3">
-        <p className="text-gray-700 dark:text-gray-200 text-sm leading-relaxed">{scenario}</p>
+      <div className="rounded-lg p-3 mb-3" style={{ backgroundColor: 'var(--bg-secondary)', color: 'var(--text-primary)' }}>
+        <p className="text-sm leading-relaxed">{scenario}</p>
       </div>
-      <p className="text-gray-900 dark:text-gray-100 text-base font-semibold mb-3">❓ {question}</p>
+      <p className="text-base font-semibold mb-3" style={{ color: 'var(--text-primary)' }}>❓ {question}</p>
       {hint && (
         <div className="mb-3">
           {!showHint ? (
-            <button onClick={() => setShowHint(true)} className="text-xs text-primary-600 dark:text-primary-400 hover:underline flex items-center gap-1">
+            <button onClick={() => setShowHint(true)} className="text-xs hover:underline flex items-center gap-1" style={{ color: 'var(--accent-blue)' }}>
               💡 Ver pista
             </button>
           ) : (

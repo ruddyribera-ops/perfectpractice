@@ -6,8 +6,12 @@ const config: Config = {
     './components/**/*.{js,ts,jsx,tsx,mdx}',
     './app/**/*.{js,ts,jsx,tsx,mdx}',
   ],
+  darkMode: ['selector', '[data-theme="dark"]'],
   theme: {
     extend: {
+      fontFamily: {
+        sans: ['var(--font-nunito)', 'system-ui', 'sans-serif'],
+      },
       colors: {
         primary: {
           50: '#f0f9ff',

@@ -180,12 +180,12 @@ body {
   --border-color: #334155;
   --text-primary: #f8fafc;
   --text-secondary: #cbd5e1;
-  --text-muted: #64748b;
-  --accent-blue: #3b82f6;
-  --accent-green: #22c55e;
-  --accent-yellow: #eab308;
-  --accent-red: #ef4444;
-  --accent-purple: #8b5cf6;
+  --text-muted: #94a3b8;
+  --accent-blue: #60a5fa;
+  --accent-green: #4ade80;
+  --accent-yellow: #fbbf24;
+  --accent-red: #f87171;
+  --accent-purple: #d8b4fe;
   --shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
 
   color: var(--text-primary);
@@ -380,12 +380,7 @@ body {
 }
 
 [data-theme="dark"] input::placeholder {
-  color: #64748b !important;
-}
-
-/* Dark mode cards */
-[data-theme="dark"] .rounded-xl {
-  background-color: #1e293b !important;
+  color: #94a3b8 !important;
 }
 
 /* ─── Animations ──────────────────────────────────────────────────────────────── */
