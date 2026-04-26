@@ -78,22 +78,22 @@ jobs:
               sm = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
 
               async with sm() as s:
-                  def add_user(email, name, role, extra=None):
+                  async def add_user(email, name, role, extra=None):
                       try:
                           u = User(email=email, password_hash=get_password_hash('test123'), name=name, role=role)
                           s.add(u)
-                          s.flush()
+                          await s.flush()
                           if extra:
                               extra(u.id)
-                          s.commit()
+                          await s.commit()
                           print(f'Created {email}')
                       except IntegrityError:
-                          s.rollback()
+                          await s.rollback()
                           print(f'Skipping {email} (already exists)')
 
-                  add_user('student@test.com', 'Test Student', UserRole.student, lambda uid: s.add(Student(user_id=uid, grade=3)))
-                  add_user('teacher@test.com', 'Test Teacher', UserRole.teacher, lambda uid: s.add(Teacher(user_id=uid)))
-                  add_user('admin@test.com', 'Test Admin', UserRole.admin)
+                  await add_user('student@test.com', 'Test Student', UserRole.student, lambda uid: Student(user_id=uid, grade=3))
+                  await add_user('teacher@test.com', 'Test Teacher', UserRole.teacher, lambda uid: Teacher(user_id=uid))
+                  await add_user('admin@test.com', 'Test Admin', UserRole.admin)
                   print('Seed complete')
 
           asyncio.run(seed())
