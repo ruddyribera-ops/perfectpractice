@@ -311,3 +311,82 @@ async def debug_login():
 async def root_health():
     return {"status": "healthy"}
 
+@app.post("/api/admin/seed-curriculum")
+async def seed_curriculum_endpoint():
+    """Seed full curriculum (G1-G6) into database. Admin only."""
+    from app.core.database import AsyncSessionLocal
+    from app.models.curriculum import Topic, Unit, Lesson, Exercise
+    from seed.curriculum_seed import TOPICS
+
+    async with AsyncSessionLocal() as db:
+        topic_count = unit_count = lesson_count = exercise_count = 0
+
+        for topic_data in TOPICS:
+            topic = Topic(
+                slug=topic_data["slug"],
+                title=topic_data["title"],
+                description=topic_data.get("description"),
+                icon_name=topic_data.get("icon_name"),
+            )
+            db.add(topic)
+            await db.flush()
+            topic_count += 1
+
+            for unit_data in topic_data.get("units", []):
+                unit = Unit(
+                    topic_id=topic.id,
+                    slug=unit_data["slug"],
+                    title=unit_data["title"],
+                    description=unit_data.get("description"),
+                    order_index=unit_data.get("order_index", 0),
+                )
+                db.add(unit)
+                await db.flush()
+                unit_count += 1
+
+                lesson_map = {}
+                for lesson_data in unit_data.get("lessons", []):
+                    lesson = Lesson(
+                        unit_id=unit.id,
+                        title=lesson_data["title"],
+                        content=lesson_data["content"],
+                        order_index=lesson_data.get("order_index", 0),
+                    )
+                    db.add(lesson)
+                    await db.flush()
+                    lesson_count += 1
+                    lesson_map[lesson_data["title"]] = lesson.id
+
+                for ex_data in unit_data.get("exercises", []):
+                    lesson_id = None
+                    for lesson_data in unit_data.get("lessons", []):
+                        if ex_data["slug"] in lesson_data.get("exercise_slugs", []):
+                            lesson_id = lesson_map.get(lesson_data["title"])
+                            break
+
+                    exercise = Exercise(
+                        unit_id=unit.id,
+                        lesson_id=lesson_id,
+                        slug=ex_data["slug"],
+                        title=ex_data["title"],
+                        exercise_type=ex_data["exercise_type"],
+                        difficulty=ex_data["difficulty"],
+                        points_value=ex_data["points"],
+                        data=ex_data["data"],
+                        hints=ex_data.get("hints"),
+                        is_anked=ex_data.get("is_anked", False),
+                        is_summative=ex_data.get("is_summative", False),
+                    )
+                    db.add(exercise)
+                    exercise_count += 1
+
+        await db.commit()
+
+        return {
+            "status": "seeded",
+            "topics": topic_count,
+            "units": unit_count,
+            "lessons": lesson_count,
+            "exercises": exercise_count,
+        }
+
