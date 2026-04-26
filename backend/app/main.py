@@ -347,17 +347,17 @@ async def cleanup_content_endpoint():
     for search, replace in replacements:
         try:
             async with engine.begin() as conn:
-                # Fix exercise data (JSONB)
+                # Fix exercise data (JSON column)
                 r = await conn.execute(sa_text(
-                    "UPDATE exercises SET data = REPLACE(data::text, :s, :r)::jsonb WHERE data::text LIKE :p"
+                    "UPDATE exercises SET data = REPLACE(data::text, :s, :r)::json WHERE data::text LIKE :p"
                 ), {"s": search, "r": replace, "p": f"%{search}%"})
                 if r.rowcount > 0:
                     results["details"].append(f"exercises.data '{search[:40]}': {r.rowcount}")
                     results["exercises_updated"] += r.rowcount
 
-                # Fix hints (JSONB array)
+                # Fix hints (JSON array column)
                 r2 = await conn.execute(sa_text(
-                    "UPDATE exercises SET hints = REPLACE(hints::text, :s, :r)::jsonb WHERE hints IS NOT NULL AND hints::text LIKE :p"
+                    "UPDATE exercises SET hints = REPLACE(hints::text, :s, :r)::json WHERE hints IS NOT NULL AND hints::text LIKE :p"
                 ), {"s": search, "r": replace, "p": f"%{search}%"})
                 if r2.rowcount > 0:
                     results["details"].append(f"exercises.hints '{search[:40]}': {r2.rowcount}")
@@ -374,13 +374,13 @@ async def cleanup_content_endpoint():
             results["details"].append(f"ERROR on '{search[:40]}': {str(e)[:120]}")
 
     # Fill empty explanations using last hint when available
-    # Note: hints is JSON column (not JSONB), so we cast it
+    # data and hints are JSON columns (not JSONB), so cast to jsonb for manipulation
     try:
         async with engine.begin() as conn:
             r4a = await conn.execute(sa_text("""
                 UPDATE exercises
-                SET data = jsonb_set(data, '{explanation}',
-                    to_jsonb((hints::jsonb)->>(jsonb_array_length(hints::jsonb)-1)))
+                SET data = jsonb_set(data::jsonb, '{explanation}',
+                    to_jsonb((hints::jsonb)->>(jsonb_array_length(hints::jsonb)-1)))::json
                 WHERE (data->>'explanation' = '' OR data->>'explanation' IS NULL)
                   AND hints IS NOT NULL
                   AND jsonb_typeof(hints::jsonb) = 'array'
@@ -388,7 +388,7 @@ async def cleanup_content_endpoint():
             """))
             r4b = await conn.execute(sa_text("""
                 UPDATE exercises
-                SET data = jsonb_set(data, '{explanation}', '"¡Bien hecho!"'::jsonb)
+                SET data = jsonb_set(data::jsonb, '{explanation}', '"¡Bien hecho!"'::jsonb)::json
                 WHERE data->>'explanation' = '' OR data->>'explanation' IS NULL
             """))
             results["explanations_filled"] = (r4a.rowcount or 0) + (r4b.rowcount or 0)
