@@ -36,7 +36,9 @@ jobs:
         run: npm install -g @railway/cli
       - name: Deploy backend
         working-directory: backend
-        run: railway up --service lucid-serenity --detach
+        run: |
+          railway link --project 512f7f30-e591-462b-9a61-64381608e12f --service c0c50d4e-5d89-4a1b-a933-2d3fee87b81f
+          railway up --detach
         env:
           RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
 
@@ -50,6 +52,8 @@ jobs:
         run: npm install -g @railway/cli
       - name: Deploy frontend
         working-directory: frontend
-        run: railway up --service proactive-wisdom --detach
+        run: |
+          railway link --project 512f7f30-e591-462b-9a61-64381608e12f --service a68d5008-3ac9-443e-a174-ed97ad5ef00e
+          railway up --detach
         env:
           RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
