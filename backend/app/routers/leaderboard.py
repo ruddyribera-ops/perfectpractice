@@ -1,6 +1,6 @@
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
+from sqlalchemy import select, func
 from sqlalchemy.orm import selectinload
 
 from app.core.database import get_db
@@ -93,13 +93,12 @@ async def get_my_leaderboard_position(
             redis = None  # Force fallback
 
     if not redis:
-        # Fallback: use total_xp from DB
+        # Fallback: use total_xp from DB (index on total_xp speeds this up)
         for period in periods:
-            # Count students with more XP for ranking
             rank_result = await db.execute(
-                select(Student.id).where(Student.total_xp > student.total_xp)
+                select(func.count(Student.id)).where(Student.total_xp > student.total_xp)
             )
-            rank = len(rank_result.scalars().all())
+            rank = rank_result.scalar() or 0
             result[period] = {
                 "rank": rank + 1,
                 "points": student.total_xp,
@@ -123,6 +122,3 @@ async def _get_student(db: AsyncSession, user_id: int) -> Student:
     if not student:
         raise HTTPException(status_code=404, detail="Student profile not found")
     return student
-
-
-from fastapi import HTTPException

@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, Cookie
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
+from sqlalchemy import select, delete
 from typing import Optional
 import hashlib
 from datetime import datetime, timedelta, timezone
@@ -80,7 +80,7 @@ async def refresh(refresh_token: Optional[str] = Cookie(None), db: AsyncSession 
 async def logout(refresh_token: Optional[str] = Cookie(None), db: AsyncSession = Depends(get_db)):
     if refresh_token:
         token_hash = hashlib.sha256(refresh_token.encode()).hexdigest()
-        await db.execute(select(Session).where(Session.token_hash == token_hash).delete())
+        await db.execute(delete(Session).where(Session.token_hash == token_hash))
         await db.commit()
     return {"message": "Logged out"}
 

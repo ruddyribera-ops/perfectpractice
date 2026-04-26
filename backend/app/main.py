@@ -3,8 +3,10 @@ from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 from sqlalchemy import text
 import asyncio
+import os
 
 from app.core.database import engine, Base
+from app.core.config import settings
 from app.routers import auth, topics, units, exercises, students, teachers, leaderboard, classes_router, assignments, lessons, notifications, parents, classroom, content_import
 
 
@@ -259,9 +261,12 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+_frontend = os.environ.get("RAILWAY_ENVIRONMENT") \
+    and settings.RAILWAY_FRONTEND_URL \
+    or settings.FRONTEND_URL
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=[_frontend],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

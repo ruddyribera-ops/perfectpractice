@@ -150,47 +150,63 @@ async def get_class_students(
         .options(selectinload(ClassEnrollment.student).selectinload(Student.user))
     )
 
+    enrollments = result.scalars().all()
+    if not enrollments:
+        return []
+
+    student_ids = [e.student.id for e in enrollments]
+
+    # Batch: avg mastery per student
+    mastery_by_student = {}
+    mastery_result = await db.execute(
+        select(
+            StudentTopicProgress.student_id,
+            func.avg(StudentTopicProgress.mastery_score).label("avg_mastery"),
+            func.sum(StudentTopicProgress.exercises_completed).label("ex_completed"),
+        )
+        .where(StudentTopicProgress.student_id.in_(student_ids))
+        .group_by(StudentTopicProgress.student_id)
+    )
+    for row in mastery_result.all():
+        mastery_by_student[row.student_id] = {
+            "avg_mastery": row.avg_mastery or 0.0,
+            "ex_completed": row.ex_completed or 0,
+        }
+
+    # Batch: last active per student (most recent attempt)
+    last_active_by_student = {}
+    last_active_result = await db.execute(
+        select(
+            ExerciseAttempt.student_id,
+            func.max(ExerciseAttempt.attempted_at).label("last_active"),
+        )
+        .where(ExerciseAttempt.student_id.in_(student_ids))
+        .group_by(ExerciseAttempt.student_id)
+    )
+    for row in last_active_result.all():
+        last_active_by_student[row.student_id] = row.last_active
+
     students_data = []
-    for enrollment in result.scalars().all():
+    for enrollment in enrollments:
         student = enrollment.student
-
-        # Calculate real avg_mastery from StudentTopicProgress
-        mastery_result = await db.execute(
-            select(func.avg(StudentTopicProgress.mastery_score)).where(
-                StudentTopicProgress.student_id == student.id
-            )
-        )
-        avg_mastery = mastery_result.scalar() or 0.0
-
-        # last_active: use Student.last_activity_date, fall back to most recent attempt
-        last_active = student.last_activity_date
-        if not last_active:
-            recent = await db.execute(
-                select(func.max(ExerciseAttempt.attempted_at))
-                .where(ExerciseAttempt.student_id == student.id)
-            )
-            last_active = recent.scalar()
-
-        # exercises_completed: sum from StudentTopicProgress
-        ex_completed_result = await db.execute(
-            select(func.sum(StudentTopicProgress.exercises_completed))
-            .where(StudentTopicProgress.student_id == student.id)
-        )
-        exercises_completed = ex_completed_result.scalar() or 0
+        sid = student.id
+        mastery = mastery_by_student.get(sid, {"avg_mastery": 0.0, "ex_completed": 0})
+        # Use DB last_active if available, else fall back to Student.last_activity_date
+        last_active = last_active_by_student.get(sid) or student.last_activity_date
 
         students_data.append(
             ClassStudentsResponse(
-                student_id=student.id,
+                student_id=sid,
                 name=student.user.name,
                 email=student.user.email,
                 grade=student.grade,
                 points=student.points,
                 level=student.level,
                 current_streak=student.current_streak,
-                avg_mastery=avg_mastery,
+                avg_mastery=mastery["avg_mastery"],
                 enrolled_at=enrollment.enrolled_at,
                 last_active=last_active,
-                exercises_completed=exercises_completed,
+                exercises_completed=mastery["ex_completed"],
             )
         )
     return students_data
@@ -263,21 +279,6 @@ async def _get_teacher(db: AsyncSession, user_id: int) -> Teacher:
     if not teacher:
         raise HTTPException(status_code=404, detail="Teacher profile not found")
     return teacher
-
-
-@router.get("/students/{student_id}/thinking_process")
-async def get_student_thinking_process(
-    student_id: int,
-    exercise_id: int,
-    user: User = Depends(get_current_user_required),
-    db: AsyncSession = Depends(get_db),
-):
-    """
-    Returns all attempts for a student + exercise, with full answer_json.
-    Teachers see HOW the student constructed the bar model — not just correct/incorrect.
-    """
-    if user.role not in ["teacher", "admin"]:
-        raise HTTPException(status_code=403, detail="Teacher only")
 
 
 @router.delete("/classes/{class_id}/students/{student_id}")

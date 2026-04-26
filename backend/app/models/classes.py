@@ -31,6 +31,9 @@ class ClassEnrollment(Base):
     status = Column(SQLEnum(EnrollmentStatus), default=EnrollmentStatus.active)
     student = relationship("Student")
     class_ = relationship("Class", back_populates="enrollments")
+    __table_args__ = (
+        UniqueConstraint('student_id', 'class_id', name='uq_student_class_enrollment'),
+    )
 
 class Assignment(Base):
     __tablename__ = "assignments"

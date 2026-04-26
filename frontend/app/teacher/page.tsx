@@ -13,7 +13,7 @@ export default function TeacherDashboardPage() {
       .then(r => r.ok ? r.json() : null)
       .then(data => {
         if (!data) return;
-        const classes = data.classes || [];
+        const classes = Array.isArray(data) ? data : (data.classes || []);
         const students = classes.reduce((acc: number, c: any) => acc + (c.student_count || 0), 0);
         const avgMastery = classes.length > 0
           ? Math.round(classes.reduce((acc: number, c: any) => acc + (c.avg_mastery || 0), 0) / classes.length)

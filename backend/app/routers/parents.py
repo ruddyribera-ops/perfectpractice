@@ -15,7 +15,7 @@ from app.models.parent import (
 from app.models.progress import StudentTopicProgress
 from app.models.gamification import Achievement
 from app.routers.students import _check_achievements
-from pydantic import BaseModel
+from pydantic import BaseModel, computed_field
 
 router = APIRouter()
 
@@ -55,8 +55,18 @@ class ParentActivity(BaseModel):
 class ParentDashboardResponse(BaseModel):
     parent_name: str
     linked_students: list[LinkedStudent]
-    daily_activity: ParentActivity | None = None
-    student_id: int | None = None  # which student the activity is for
+    daily_activities: dict[int, ParentActivity] = {}  # keyed by student_id
+
+    @computed_field
+    @property
+    def daily_activity(self) -> ParentActivity | None:
+        first_id = next(iter(self.daily_activities), None)
+        return self.daily_activities.get(first_id) if first_id else None
+
+    @computed_field
+    @property
+    def student_id(self) -> int | None:
+        return next(iter(self.daily_activities), None)
 
 
 class GenerateLinkCodeResponse(BaseModel):
@@ -157,62 +167,58 @@ async def get_parent_dashboard(
     )
 
     students = []
-    first_student_id = None
-    first_student_grade = 1
+    all_student_ids = []
+    grade_by_student_id: dict[int, int] = {}
     for (link, student) in links_result.all():
         stats = await _get_student_stats(db, student)
         students.append(LinkedStudent(**stats))
-        if first_student_id is None:
-            first_student_id = student.id
-            first_student_grade = student.grade or 1
+        all_student_ids.append(student.id)
+        grade_by_student_id[student.id] = student.grade or 1
 
-    # Pick daily activity based on day of year % 5 for the first student's grade
-    today_activity = None
-    if first_student_id:
+    # Compute daily activity for each student (same day_index, each student may have different grade)
+    daily_activities: dict[int, ParentActivity] = {}
+    if all_student_ids:
         day_index = (date.today().timetuple().tm_yday - 1) % 5  # 0-4
-        grade_filter = first_student_grade
 
+        # Batch: fetch today's activity rows for all relevant grades
+        unique_grades = list(set(grade_by_student_id.values()))
         act_result = await db.execute(
-            select(PAOrm)
-            .where(PAOrm.grade == grade_filter, PAOrm.day_index == day_index)
-            .limit(1)
+            select(PAOrm).where(PAOrm.grade.in_(unique_grades), PAOrm.day_index == day_index)
         )
-        today_activity_row = act_result.scalar_one_or_none()
+        activity_rows = {row.grade: row for row in act_result.scalars().all()}
 
-        if today_activity_row:
-            # Check if already completed today for this student
-            today_date = date.today()
-            comp_result = await db.execute(
-                select(PACOrm)
-                .where(
-                    and_(
-                        PACOrm.parent_id == parent.id,
-                        PACOrm.student_id == first_student_id,
-                        PACOrm.activity_id == today_activity_row.id,
-                    )
+        # Batch: fetch today's completions for all students
+        comp_result = await db.execute(
+            select(PACOrm).where(
+                PACOrm.parent_id == parent.id,
+                PACOrm.student_id.in_(all_student_ids),
+                PACOrm.activity_id.in_([r.id for r in activity_rows.values()]),
+            )
+        )
+        completed = {(row.student_id, row.activity_id) for row in comp_result.scalars().all()}
+
+        for student_id, grade in grade_by_student_id.items():
+            activity_row = activity_rows.get(grade)
+            if activity_row:
+                already_done = (student_id, activity_row.id) in completed
+                daily_activities[student_id] = ParentActivity(
+                    id=activity_row.id,
+                    grade=activity_row.grade,
+                    title=activity_row.title,
+                    description=activity_row.description,
+                    materials=activity_row.materials,
+                    estimated_minutes=activity_row.estimated_minutes,
+                    difficulty=activity_row.difficulty,
+                    bar_model_topic=activity_row.bar_model_topic,
+                    topic_id=activity_row.topic_id,
+                    day_index=activity_row.day_index,
+                    already_completed=already_done,
                 )
-            )
-            already_done = comp_result.first() is not None
-
-            today_activity = ParentActivity(
-                id=today_activity_row.id,
-                grade=today_activity_row.grade,
-                title=today_activity_row.title,
-                description=today_activity_row.description,
-                materials=today_activity_row.materials,
-                estimated_minutes=today_activity_row.estimated_minutes,
-                difficulty=today_activity_row.difficulty,
-                bar_model_topic=today_activity_row.bar_model_topic,
-                topic_id=today_activity_row.topic_id,
-                day_index=today_activity_row.day_index,
-                already_completed=already_done,
-            )
 
     return ParentDashboardResponse(
         parent_name=user.name,
         linked_students=students,
-        daily_activity=today_activity,
-        student_id=first_student_id,
+        daily_activities=daily_activities,
     )
 
 

@@ -690,30 +690,50 @@ async def get_my_assignments(
         .order_by(Assignment.due_date.asc().nullslast())
     )
 
-    items = []
-    for (assignment, class_name) in assignments_result.all():
-        sa_result = await db.execute(
-            select(StudentAssignment).where(
-                StudentAssignment.student_id == student.id,
-                StudentAssignment.assignment_id == assignment.id
+    assignments_list = assignments_result.all()
+    if not assignments_list:
+        return MyAssignmentsResponse(items=[], total=0)
+
+    assignment_ids = [a.id for (a, _) in assignments_list]
+
+    # Batch: fetch all StudentAssignments for this student + these assignments
+    sa_result = await db.execute(
+        select(StudentAssignment).where(
+            StudentAssignment.student_id == student.id,
+            StudentAssignment.assignment_id.in_(assignment_ids),
+        )
+    )
+    sa_by_assignment = {sa.assignment_id: sa for sa in sa_result.scalars().all()}
+
+    # Batch: fetch all AssignmentExercises for these assignments
+    ex_result = await db.execute(
+        select(AssignmentExercise).where(AssignmentExercise.assignment_id.in_(assignment_ids))
+    )
+    exercises_by_assignment = {}
+    for ae in ex_result.scalars().all():
+        exercises_by_assignment.setdefault(ae.assignment_id, []).append(ae.exercise_id)
+
+    # Batch: fetch all correct attempt exercise_ids for this student (across all assignment exercises)
+    all_exercise_ids = [eid for eids in exercises_by_assignment.values() for eid in eids]
+    correct_exercise_ids: set[int] = set()
+    if all_exercise_ids:
+        correct_result = await db.execute(
+            select(func.distinct(ExerciseAttempt.exercise_id)).where(
+                ExerciseAttempt.student_id == student.id,
+                ExerciseAttempt.exercise_id.in_(all_exercise_ids),
+                ExerciseAttempt.correct == True,
             )
         )
-        sa = sa_result.scalar_one_or_none()
+        correct_exercise_ids = {r for (r,) in correct_result.all()}
 
-        ex_result = await db.execute(
-            select(AssignmentExercise.exercise_id).where(AssignmentExercise.assignment_id == assignment.id)
-        )
-        exercise_ids = [r for (r,) in ex_result.all()]
+    items = []
+    for (assignment, class_name) in assignments_list:
+        sa = sa_by_assignment.get(assignment.id)
+        exercise_ids = exercises_by_assignment.get(assignment.id, [])
         total_exercises = len(exercise_ids)
 
         if total_exercises > 0:
-            correct_result = await db.execute(
-                select(func.count(func.distinct(ExerciseAttempt.exercise_id)))
-                .where(ExerciseAttempt.student_id == student.id)
-                .where(ExerciseAttempt.exercise_id.in_(exercise_ids))
-                .where(ExerciseAttempt.correct == True)
-            )
-            correct_count = correct_result.scalar() or 0
+            correct_count = len(correct_exercise_ids & set(exercise_ids))
             completion_rate = correct_count / total_exercises
         else:
             completion_rate = 0.0

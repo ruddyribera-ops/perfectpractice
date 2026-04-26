@@ -388,7 +388,9 @@ async def sync_assignment_to_classroom(
 
     # Load the local assignment
     from app.models.classes import Assignment
-    ass_result = await db.execute(select(Assignment).where(Assignment.id == assignment_id))
+    ass_result = await db.execute(
+        select(Assignment).where(Assignment.id == assignment_id).options(selectinload(Assignment.class_))
+    )
     assignment = ass_result.scalar_one_or_none()
     if not assignment:
         raise HTTPException(status_code=404, detail="Assignment not found")

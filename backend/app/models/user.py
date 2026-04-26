@@ -31,7 +31,7 @@ class Student(Base):
     user_id = Column(Integer, ForeignKey("users.id"), unique=True, nullable=False)
     grade = Column(Integer, nullable=False)
     points = Column(Integer, default=0)
-    total_xp = Column(Integer, default=0)
+    total_xp = Column(Integer, default=0, index=True)
     current_streak = Column(Integer, default=0)
     longest_streak = Column(Integer, default=0)
     last_activity_date = Column(Date, nullable=True)
