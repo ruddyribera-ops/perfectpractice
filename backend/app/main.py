@@ -374,19 +374,18 @@ async def cleanup_content_endpoint():
             results["details"].append(f"ERROR on '{search[:40]}': {str(e)[:120]}")
 
     # Fill empty explanations using last hint when available
+    # Note: hints is JSON column (not JSONB), so we cast it
     try:
         async with engine.begin() as conn:
-            # Use last hint for exercises with hints
             r4a = await conn.execute(sa_text("""
                 UPDATE exercises
                 SET data = jsonb_set(data, '{explanation}',
-                    to_jsonb(hints->>(jsonb_array_length(hints)-1)))
+                    to_jsonb((hints::jsonb)->>(jsonb_array_length(hints::jsonb)-1)))
                 WHERE (data->>'explanation' = '' OR data->>'explanation' IS NULL)
                   AND hints IS NOT NULL
-                  AND jsonb_typeof(hints) = 'array'
-                  AND jsonb_array_length(hints) > 0
+                  AND jsonb_typeof(hints::jsonb) = 'array'
+                  AND jsonb_array_length(hints::jsonb) > 0
             """))
-            # Use a default for exercises without hints
             r4b = await conn.execute(sa_text("""
                 UPDATE exercises
                 SET data = jsonb_set(data, '{explanation}', '"¡Bien hecho!"'::jsonb)
