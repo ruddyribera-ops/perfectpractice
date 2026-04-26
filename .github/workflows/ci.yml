@@ -32,12 +32,15 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - name: Install Railway CLI
+        run: npm install -g @railway/cli
       - name: Deploy backend
+        working-directory: backend
         run: |
-          curl -s -X POST \
-            -H "Authorization: Bearer ${{ secrets.RAILWAY_TOKEN }}" \
-            -H "Content-Type: application/json" \
-            "https://backboard.railway.app/api/v2/deploy?projectId=512f7f30-e591-462b-9a61-64381608e12f&serviceId=c0c50d4e-5d89-4a1b-a933-2d3fee87b81f"
+          railway link --project 512f7f30-e591-462b-9a61-64381608e12f --yes
+          railway up --service lucid-serenity
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
 
   deploy-frontend:
     needs: pytest
@@ -45,9 +48,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - name: Install Railway CLI
+        run: npm install -g @railway/cli
       - name: Deploy frontend
+        working-directory: frontend
         run: |
-          curl -s -X POST \
-            -H "Authorization: Bearer ${{ secrets.RAILWAY_TOKEN }}" \
-            -H "Content-Type: application/json" \
-            "https://backboard.railway.app/api/v2/deploy?projectId=512f7f30-e591-462b-9a61-64381608e12f&serviceId=a68d5008-3ac9-443e-a174-ed97ad5ef00e"
+          railway link --project 512f7f30-e591-462b-9a61-64381608e12f --yes
+          railway up --service proactive-wisdom
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
