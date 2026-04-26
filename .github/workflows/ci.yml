@@ -32,10 +32,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: railwayapp/deploy-action@v2
-        with:
-          railway_token: ${{ secrets.RAILWAY_TOKEN }}
-          service: lucid-serenity
+      - name: Install Railway CLI
+        run: npm install -g @railway/cli
+      - name: Deploy backend
+        working-directory: backend
+        run: railway up --service lucid-serenity --detach
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
 
   deploy-frontend:
     needs: pytest
@@ -43,7 +46,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: railwayapp/deploy-action@v2
-        with:
-          railway_token: ${{ secrets.RAILWAY_TOKEN }}
-          service: proactive-wisdom
+      - name: Install Railway CLI
+        run: npm install -g @railway/cli
+      - name: Deploy frontend
+        working-directory: frontend
+        run: railway up --service proactive-wisdom --detach
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
