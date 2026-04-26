@@ -318,84 +318,78 @@ async def cleanup_content_endpoint():
 
     # Map of (search_pattern, replacement) for content cleanup
     replacements = [
-        # Foreign words mixed with Spanish
         ("combienas veces", "cuántas veces"),
         ("combien", "cuánto"),
         ("voiture", "auto"),
         (" wheels ", " ruedas "),
+        ("La wheels", "Las ruedas"),
         ("ver instantly", "ver inmediatamente"),
-        ("instantly", "inmediatamente"),
-        ("La wheels de una voiture", "Las ruedas de un auto"),
-        ("UnTV", "Un TV"),
-        # Broken markdown markers
-        ("##group=10+ones\n", ""),
-        ("##group=10+ones", ""),
-        # Mixed English
-        ("Si hay 5 teachers, ¿cuántos students?", "Si hay 5 profesores, ¿cuántos estudiantes?"),
+        (" instantly ", " inmediatamente "),
+        ("UnTV cuesta", "Un TV cuesta"),
+        ("##group=10+ones", "## Un grupo de 10 más unidades"),
         ("teachers:students", "profesores:estudiantes"),
         ("5 teachers", "5 profesores"),
         ("100 students", "100 estudiantes"),
         ("la razón de teachers", "la razón de profesores"),
+        ("razón niñas:nños", "razón niñas:niños"),
+        # Bad comparison visual usage that produced "+-60" badge
+        (":::visual:comparison,120,60,Distancia (km),Velocidad (km/h):::\n\n", ""),
+        (":::visual:comparison,1,1000000,1,Millon:::\n\n", ""),
+        (":::visual:comparison,3,5,Círculo,Figura:::\n\n", ""),
+        (":::visual:comparison,8,3,Largo,Ancho:::\n\n", ""),
+        (":::visual:comparison,7,3,Lápiz,Crayón:::", ":::visual:comparison,3,7,Crayón (3cm),Lápiz (7cm):::"),
+        (":::visual:comparison,3,2,Azules,Rojos:::", ":::visual:comparison,2,3,Rojas (2),Azules (3):::"),
     ]
 
-    results = {"exercises_updated": 0, "lessons_updated": 0, "details": []}
+    results = {"exercises_updated": 0, "lessons_updated": 0, "explanations_filled": 0, "details": []}
 
-    async with engine.begin() as conn:
-        # Fix exercise hints, questions, explanations (data is JSONB)
-        for search, replace in replacements:
-            r = await conn.execute(sa_text("""
-                UPDATE exercises
-                SET data = data::text::jsonb
-                WHERE data::text LIKE :pattern
-            """), {"pattern": f"%{search}%"})
+    # Process each replacement in its own transaction so partial failure doesn't kill all
+    for search, replace in replacements:
+        try:
+            async with engine.begin() as conn:
+                # Fix exercise data (JSONB)
+                r = await conn.execute(sa_text(
+                    "UPDATE exercises SET data = REPLACE(data::text, :s, :r)::jsonb WHERE data::text LIKE :p"
+                ), {"s": search, "r": replace, "p": f"%{search}%"})
+                if r.rowcount > 0:
+                    results["details"].append(f"exercises.data '{search[:40]}': {r.rowcount}")
+                    results["exercises_updated"] += r.rowcount
 
-            # Use jsonb update with replace
-            r2 = await conn.execute(sa_text("""
-                UPDATE exercises
-                SET data = REPLACE(data::text, :search, :replace)::jsonb
-                WHERE data::text LIKE :pattern
-            """), {"search": search, "replace": replace, "pattern": f"%{search}%"})
-            if r2.rowcount > 0:
-                results["details"].append(f"exercises.data: '{search}' -> '{replace}' ({r2.rowcount} rows)")
-                results["exercises_updated"] += r2.rowcount
+                # Fix hints (JSONB array)
+                r2 = await conn.execute(sa_text(
+                    "UPDATE exercises SET hints = REPLACE(hints::text, :s, :r)::jsonb WHERE hints IS NOT NULL AND hints::text LIKE :p"
+                ), {"s": search, "r": replace, "p": f"%{search}%"})
+                if r2.rowcount > 0:
+                    results["details"].append(f"exercises.hints '{search[:40]}': {r2.rowcount}")
+                    results["exercises_updated"] += r2.rowcount
 
-            # Fix exercise hints (hints is a JSON array, stored as JSONB)
-            r3 = await conn.execute(sa_text("""
-                UPDATE exercises
-                SET hints = REPLACE(hints::text, :search, :replace)::jsonb
-                WHERE hints::text LIKE :pattern
-            """), {"search": search, "replace": replace, "pattern": f"%{search}%"})
-            if r3.rowcount > 0:
-                results["details"].append(f"exercises.hints: '{search}' -> '{replace}' ({r3.rowcount} rows)")
-                results["exercises_updated"] += r3.rowcount
+                # Fix lesson content (TEXT)
+                r3 = await conn.execute(sa_text(
+                    "UPDATE lessons SET content = REPLACE(content, :s, :r) WHERE content LIKE :p"
+                ), {"s": search, "r": replace, "p": f"%{search}%"})
+                if r3.rowcount > 0:
+                    results["details"].append(f"lessons.content '{search[:40]}': {r3.rowcount}")
+                    results["lessons_updated"] += r3.rowcount
+        except Exception as e:
+            results["details"].append(f"ERROR on '{search[:40]}': {str(e)[:120]}")
 
-            # Fix lesson content (TEXT column)
+    # Fill empty explanations
+    try:
+        async with engine.begin() as conn:
             r4 = await conn.execute(sa_text("""
-                UPDATE lessons
-                SET content = REPLACE(content, :search, :replace)
-                WHERE content LIKE :pattern
-            """), {"search": search, "replace": replace, "pattern": f"%{search}%"})
-            if r4.rowcount > 0:
-                results["details"].append(f"lessons.content: '{search}' -> '{replace}' ({r4.rowcount} rows)")
-                results["lessons_updated"] += r4.rowcount
-
-        # Fill empty explanations with helpful default text based on hints
-        r5 = await conn.execute(sa_text("""
-            UPDATE exercises
-            SET data = jsonb_set(
-                data,
-                '{explanation}',
-                to_jsonb(CASE
-                    WHEN hints IS NOT NULL AND jsonb_array_length(hints) > 0
-                    THEN hints->>-1
-                    ELSE '¡Bien hecho!'
-                END)
-            )
-            WHERE data->>'explanation' = ''
-        """))
-        if r5.rowcount > 0:
-            results["details"].append(f"Filled {r5.rowcount} empty explanations with last hint")
-            results["exercises_updated"] += r5.rowcount
+                UPDATE exercises
+                SET data = jsonb_set(data, '{explanation}', to_jsonb(
+                    COALESCE(
+                        (SELECT hint FROM jsonb_array_elements_text(hints) AS hint OFFSET GREATEST(jsonb_array_length(hints)-1, 0) LIMIT 1),
+                        '¡Bien hecho!'
+                    )
+                ))
+                WHERE data->>'explanation' = '' OR data->>'explanation' IS NULL
+            """))
+            results["explanations_filled"] = r4.rowcount
+            results["details"].append(f"Filled {r4.rowcount} empty explanations")
+    except Exception as e:
+        results["details"].append(f"ERROR filling explanations: {str(e)[:120]}")
 
     return results
 
