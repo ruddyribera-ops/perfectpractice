@@ -2314,14 +2314,14 @@ async def seed_topics(db):
         db.add(topic)
         await db.flush()
         topic_count += 1
-        print(f"  ✅ Created topic: {topic.title}")
+        print(f"  [Created topic: {topic.title}]")
 
         # Create units
         for unit_data in topic_data.get("units", []):
             # Check if unit already exists (from previous partial seed)
             result_unit = await db.execute(select(Unit).where(Unit.slug == unit_data["slug"]))
             if result_unit.scalar_one_or_none():
-                print(f"    ⏭️  Unit '{unit_data['slug']}' already exists, skipping")
+                print(f"    [Unit '{unit_data['slug']}' already exists, skipping]")
                 continue
 
             unit = Unit(
@@ -2391,7 +2391,7 @@ async def seed_topics(db):
                 exercise_count += 1
 
             lesson_label = f" ({len(unit_data.get('lessons', []))} lessons)" if unit_data.get("lessons") else ""
-            print(f"      ✅ Unit: {unit.title} ({len(unit_data.get('exercises', []))} exercises{lesson_label})")
+            print(f"      [Unit: {unit.title} ({len(unit_data.get('exercises', []))} exercises{lesson_label})]")
 
     return topic_count, unit_count, lesson_count, exercise_count
 
@@ -2421,16 +2421,16 @@ async def run_seed(dry_run=False, commit=True):
     print("=" * 60)
 
     if dry_run:
-        print("\n⚠️  DRY RUN MODE - No changes will be made\n")
+        print("\n[DRY RUN MODE - No changes will be made]\n")
     elif not commit:
-        print("\n⚠️  VERIFY MODE - Counts will be shown without inserting\n")
+        print("\n[VERIFY MODE - Counts will be shown without inserting]\n")
 
-    print("\n📊 Current database state:")
+    print("\nCurrent database state:")
     t, u, l, e = await verify_seed()
     print(f"   Topics: {t}, Units: {u}, Lessons: {l}, Exercises: {e}")
 
     if dry_run:
-        print("\n📋 Would create:")
+        print("\nWould create:")
         total_units = sum(len(topic["units"]) for topic in TOPICS)
         total_lessons = sum(sum(len(u["lessons"]) for u in topic["units"]) for topic in TOPICS)
         total_exercises = sum(sum(len(u["exercises"]) for u in topic["units"]) for topic in TOPICS)
@@ -2443,16 +2443,16 @@ async def run_seed(dry_run=False, commit=True):
     if not commit:
         return
 
-    print("\n🚀 Starting seed...")
+    print("\nStarting seed...")
 
     async with AsyncSessionLocal() as db:
         t, u, l, e = await seed_topics(db)
         await db.commit()
 
-    print("\n✅ Seed complete!")
+    print("\nSeed complete!")
     print(f"   Created: {t} topics, {u} units, {l} lessons, {e} exercises")
 
-    print("\n📊 New database state:")
+    print("\nNew database state:")
     t, u, l, e = await verify_seed()
     print(f"   Topics: {t}, Units: {u}, Lessons: {l}, Exercises: {e}")
 
