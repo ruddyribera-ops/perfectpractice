@@ -505,17 +505,25 @@ export default function ExercisePage() {
               {submitting ? 'Verificando...' : 'Verificar Respuesta'}
             </button>
           ) : (
-            <button onClick={handleNext} className="btn-primary flex-1 text-lg py-3">
-              Siguiente <ChevronLeft className="h-5 w-5 ml-2 rotate-180" />
-            </button>
+            <>
+              <button onClick={() => router.push(`/lessons/${exercise?.lesson_id}`)} className="btn-secondary flex-1 text-lg py-3">
+                ← Volver a la lección
+              </button>
+              <button onClick={() => window.history.back()} className="btn-primary flex-1 text-lg py-3">
+                Siguiente <ChevronLeft className="h-5 w-5 ml-2 rotate-180" />
+              </button>
+            </>
           )}
         </div>
+        {/* Always-visible lesson return link after submitting */}
+        {result && exercise?.lesson_id && (
+          <div className="mt-3 text-center">
+            <Link href={`/lessons/${exercise.lesson_id}`} className="text-sm text-primary-600 hover:underline">
+              ← Volver a la lección
+            </Link>
+          </div>
+        )}
       </main>
     </div>
   )
-}
-
-function handleNext() {
-  // Navigate back - will be enhanced to go to next exercise
-  window.history.back()
 }
