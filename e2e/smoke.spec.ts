@@ -22,13 +22,13 @@ test.describe('Production Smoke Tests', () => {
 
   test('login as student@test.com shows dashboard', async ({ page }) => {
     await page.goto(`${FRONTEND_URL}/login`, { waitUntil: 'networkidle' });
-    await page.locator('input[type="email"]').fill('student@test.com');
+    await page.locator('input[type="email"]').fill('student_01@test.com');
     await page.locator('input[type="password"]').fill('test123');
     await page.locator('button[type="submit"]').click();
     // Student lands on / (root) not /student
     await page.waitForURL(/^https:\/\/proactive-wisdom-production.*\/$/, { timeout: 10000 });
     // Dashboard should load (shows stats cards)
-    await expect(page.getByText(/Math Platform|XP Total|Nivel|Racha|Ejercicios/i)).toBeVisible({ timeout: 10000 });
+    await expect(page.getByText(/XP Total|Nivel|Racha|Ejercicios/i).first()).toBeVisible({ timeout: 10000 });
   });
 
   test('unauthenticated /api/me returns 401', async ({ request }) => {
