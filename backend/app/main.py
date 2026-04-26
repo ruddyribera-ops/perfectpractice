@@ -373,23 +373,29 @@ async def cleanup_content_endpoint():
         except Exception as e:
             results["details"].append(f"ERROR on '{search[:40]}': {str(e)[:120]}")
 
-    # Fill empty explanations
+    # Fill empty explanations using last hint when available
     try:
         async with engine.begin() as conn:
-            r4 = await conn.execute(sa_text("""
+            # Use last hint for exercises with hints
+            r4a = await conn.execute(sa_text("""
                 UPDATE exercises
-                SET data = jsonb_set(data, '{explanation}', to_jsonb(
-                    COALESCE(
-                        (SELECT hint FROM jsonb_array_elements_text(hints) AS hint OFFSET GREATEST(jsonb_array_length(hints)-1, 0) LIMIT 1),
-                        '¡Bien hecho!'
-                    )
-                ))
+                SET data = jsonb_set(data, '{explanation}',
+                    to_jsonb(hints->>(jsonb_array_length(hints)-1)))
+                WHERE (data->>'explanation' = '' OR data->>'explanation' IS NULL)
+                  AND hints IS NOT NULL
+                  AND jsonb_typeof(hints) = 'array'
+                  AND jsonb_array_length(hints) > 0
+            """))
+            # Use a default for exercises without hints
+            r4b = await conn.execute(sa_text("""
+                UPDATE exercises
+                SET data = jsonb_set(data, '{explanation}', '"¡Bien hecho!"'::jsonb)
                 WHERE data->>'explanation' = '' OR data->>'explanation' IS NULL
             """))
-            results["explanations_filled"] = r4.rowcount
-            results["details"].append(f"Filled {r4.rowcount} empty explanations")
+            results["explanations_filled"] = (r4a.rowcount or 0) + (r4b.rowcount or 0)
+            results["details"].append(f"Filled {r4a.rowcount or 0} from hints, {r4b.rowcount or 0} default")
     except Exception as e:
-        results["details"].append(f"ERROR filling explanations: {str(e)[:120]}")
+        results["details"].append(f"ERROR filling explanations: {str(e)[:200]}")
 
     return results
 
