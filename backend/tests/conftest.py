@@ -38,7 +38,7 @@ async def db_session(engine):
 @pytest_asyncio.fixture
 async def client():
     """Async HTTP client pointed at the FastAPI app."""
-        test_url = os.environ.get("DATABASE_URL", "postgresql+asyncpg://postgres:zMMxobzDtVMtpViNLeYCAGgGxUSZUjSz@shortline.proxy.rlwy.net:19435/railway")
+    test_url = os.environ.get("DATABASE_URL", "postgresql+asyncpg://postgres:zMMxobzDtVMtpViNLeYCAGgGxUSZUjSz@shortline.proxy.rlwy.net:19435/railway")
     from sqlalchemy.ext.asyncio import create_async_engine
     from app.core.database import get_db
     test_engine = create_async_engine(test_url, echo=False)
