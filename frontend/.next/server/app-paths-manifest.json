@@ -1,1 +1,25 @@
-{}
+{
+  "/_not-found/page": "app/_not-found/page.js",
+  "/exercises/[id]/page": "app/exercises/[id]/page.js",
+  "/api/health/route": "app/api/health/route.js",
+  "/leaderboard/page": "app/leaderboard/page.js",
+  "/lessons/[id]/page": "app/lessons/[id]/page.js",
+  "/me/assignments/[id]/page": "app/me/assignments/[id]/page.js",
+  "/me/assignments/page": "app/me/assignments/page.js",
+  "/learn/[slug]/page": "app/learn/[slug]/page.js",
+  "/login/page": "app/login/page.js",
+  "/me/notifications/page": "app/me/notifications/page.js",
+  "/me/history/page": "app/me/history/page.js",
+  "/me/classes/page": "app/me/classes/page.js",
+  "/page": "app/page.js",
+  "/register/page": "app/register/page.js",
+  "/parent/page": "app/parent/page.js",
+  "/teacher/classes/[id]/assignments/[assignment_id]/results/page": "app/teacher/classes/[id]/assignments/[assignment_id]/results/page.js",
+  "/teacher/classes/page": "app/teacher/classes/page.js",
+  "/teacher/classes/[id]/page": "app/teacher/classes/[id]/page.js",
+  "/teacher/page": "app/teacher/page.js",
+  "/teacher/classroom/page": "app/teacher/classroom/page.js",
+  "/topics/page": "app/topics/page.js",
+  "/topics/[slug]/page": "app/topics/[slug]/page.js",
+  "/units/[slug]/page": "app/units/[slug]/page.js"
+}

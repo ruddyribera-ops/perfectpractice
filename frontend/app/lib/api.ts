@@ -168,6 +168,9 @@ class ApiClient {
   getAchievements() { return this.get<AchievementResponse[]>('/me/achievements') }
   useStreakFreeze() { return this.post<StreakFreezeResponse>('/me/streaks/freeze') }
   getMyRank() { return this.get<LeaderboardMeResponse>('/leaderboard/me') }
+  getLeaderboard(period: 'weekly' | 'monthly' | 'all_time' = 'weekly') {
+    return this.get<LeaderboardEntry[]>(`/leaderboard/global?period=${period}`)
+  }
 
   // ─── Lessons ───────────────────────────────────────────────────────────────
   getLessonsForUnit(unitId: number) { return this.get<Lesson[]>(`/lessons/unit/${unitId}`) }
@@ -437,6 +440,15 @@ export interface LeaderboardMeResponse {
   monthly_points: number
   all_time_rank: number | null
   all_time_points: number
+}
+
+export interface LeaderboardEntry {
+  rank: number
+  student_id: number
+  student_name: string
+  points: number
+  avatar_url: string | null
+  level: number
 }
 
 export interface ProgressItem {

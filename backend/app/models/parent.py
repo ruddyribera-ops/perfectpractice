@@ -20,6 +20,10 @@ class ParentStudentLink(Base):
     student_id = Column(Integer, nullable=True)  # NULL = unclaimed, set to student id when claimed
     link_code = Column(String(20), nullable=False, unique=True)  # 6-char code parent uses to link
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    __table_args__ = (
+        # Prevent the same student from being linked to the same parent twice
+        UniqueConstraint('parent_id', 'student_id', name='uq_parent_student_link'),
+    )
 
 
 class ParentActivity(Base):

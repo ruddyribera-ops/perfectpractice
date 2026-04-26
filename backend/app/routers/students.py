@@ -895,10 +895,13 @@ async def link_parent_account(
     link.student_id = student.id
     await db.commit()
 
-    # Get parent name
-    parent_result = await db.execute(select(Parent).where(Parent.id == link.parent_id))
+    # Get parent name with eager loading to avoid detached instance errors
+    from sqlalchemy.orm import selectinload
+    parent_result = await db.execute(
+        select(Parent).where(Parent.id == link.parent_id).options(selectinload(Parent.user))
+    )
     parent = parent_result.scalar_one_or_none()
-    parent_name = parent.user.name if parent else "Familiar"
+    parent_name = parent.user.name if (parent and parent.user) else "Familiar"
 
     return LinkParentResponse(success=True, parent_name=parent_name)
 
