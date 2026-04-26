@@ -32,15 +32,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Install Railway CLI
-        run: npm install -g @railway/cli
       - name: Deploy backend
-        working-directory: backend
         run: |
-          railway link --project 512f7f30-e591-462b-9a61-64381608e12f --service c0c50d4e-5d89-4a1b-a933-2d3fee87b81f
-          railway up --detach
-        env:
-          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+          curl -s -X POST \
+            -H "Authorization: Bearer ${{ secrets.RAILWAY_TOKEN }}" \
+            -H "Content-Type: application/json" \
+            "https://backboard.railway.app/api/v2/deploy?projectId=512f7f30-e591-462b-9a61-64381608e12f&serviceId=c0c50d4e-5d89-4a1b-a933-2d3fee87b81f"
 
   deploy-frontend:
     needs: pytest
@@ -48,12 +45,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Install Railway CLI
-        run: npm install -g @railway/cli
       - name: Deploy frontend
-        working-directory: frontend
         run: |
-          railway link --project 512f7f30-e591-462b-9a61-64381608e12f --service a68d5008-3ac9-443e-a174-ed97ad5ef00e
-          railway up --detach
-        env:
-          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+          curl -s -X POST \
+            -H "Authorization: Bearer ${{ secrets.RAILWAY_TOKEN }}" \
+            -H "Content-Type: application/json" \
+            "https://backboard.railway.app/api/v2/deploy?projectId=512f7f30-e591-462b-9a61-64381608e12f&serviceId=a68d5008-3ac9-443e-a174-ed97ad5ef00e"
