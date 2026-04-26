@@ -9,6 +9,20 @@ on:
 jobs:
   pytest:
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: testpassword
+          POSTGRES_DB: testrailway
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
     steps:
       - uses: actions/checkout@v4
 
@@ -22,11 +36,12 @@ jobs:
           pip install -r backend/requirements.txt
           pip install pytest pytest-asyncio httpx
 
-      - name: Set test DATABASE_URL
-        run: |
-          echo "DATABASE_URL=postgresql+asyncpg://postgres:${{ secrets.TEST_DATABASE_PASSWORD }}@${{ secrets.TEST_DATABASE_HOST }}/railway" >> $GITHUB_ENV
+      - name: Wait for postgres
+        run: sleep 5
 
       - name: Run pytest
+        env:
+          DATABASE_URL: postgresql+asyncpg://postgres:testpassword@localhost:5432/testrailway
         run: pytest backend/ -v --tb=short
 
   deploy-backend:
