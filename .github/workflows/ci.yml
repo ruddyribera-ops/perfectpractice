@@ -57,17 +57,18 @@ jobs:
           "
 
       - name: Run pytest
+        working-directory: backend
         env:
           DATABASE_URL: postgresql+asyncpg://postgres:testpassword@localhost:5432/railway
         run: |
           # Seed test users (idempotent — skips if already exists)
           python -c "
-          import asyncio
+          import asyncio, sys
+          sys.path.insert(0, '.')
           from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
           from sqlalchemy.exc import IntegrityError
           from app.core.security import get_password_hash
-          from app.models.user import User, UserRole, Student
-          from app.models.user import Teacher
+          from app.models.user import User, UserRole, Student, Teacher
           from app.core.database import Base
 
           async def seed():
@@ -97,7 +98,7 @@ jobs:
 
           asyncio.run(seed())
           "
-          pytest backend/ -v --tb=short
+          pytest tests/ -v --tb=short
 
   deploy-backend:
     needs: pytest
